@@ -1,8 +1,26 @@
-use serde::Deserialize;
-
+mod extension;
 mod graphql;
+mod item;
+
+use extension::Extension;
+use item::Item;
 
 pub use graphql::{Client, Id};
+
+#[derive(Debug)]
+pub struct Generator {
+    config: Config,
+    verbose: bool,
+}
+
+#[derive(Debug)]
+pub struct Config {
+    username: String,
+    width: u32,
+    height: u32,
+    css: Vec<String>,
+    extensions: Vec<Box<dyn Extension>>,
+}
 
 #[derive(Debug)]
 pub struct UserInfo {
