@@ -10,17 +10,6 @@ pub struct ItemBuilder {
 }
 
 impl ItemBuilder {
-    pub fn new_item(
-        item_type: &str,
-        attr: Option<HashMap<String, Attribute>>,
-        style: Option<HashMap<String, String>>,
-        single: Option<bool>,
-        children: Option<Vec<Item>>,
-        content: Option<String>,
-    ) -> Item {
-        Item::new(item_type, attr, style, single, children, content)
-    }
-
     pub fn stringify(&mut self, item: &mut Item) -> String {
         if !item.attr.contains_key("id") {
             item.attr.insert(
@@ -434,8 +423,6 @@ mod macros {
             vec![$($content)*]
         };
     }
-
-    pub(crate) use {attribute, style};
 }
 
 enum Attribute {
@@ -450,7 +437,7 @@ impl Display for Attribute {
             Attribute::String(str) => str.to_string(),
             Attribute::Array(arr) => arr.join(" "),
             Attribute::Map(map) => map
-                .into_iter()
+                .iter()
                 .map(|(k, v)| format!("{{{k}: {v}}}"))
                 .fold(String::new(), |acc, kv| format!("{acc}\n{kv}")),
         };
@@ -497,17 +484,18 @@ const ICON_PATH: [&str; 3] = [
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::style;
 
     #[test]
     fn stringify() {
         let mut builder = ItemBuilder::default();
 
-        let mut item = ItemBuilder::new_item("g", None, None, Some(true), None, None);
+        let mut item = Item::new("g", None, None, Some(true), None, None);
 
         let stringify = builder.stringify(&mut item);
         assert_eq!(stringify, r#"<g id="_1"/>"#);
 
-        let mut item = ItemBuilder::new_item(
+        let mut item = Item::new(
             "g",
             None,
             None,
@@ -524,16 +512,16 @@ mod tests {
     fn css() {
         let mut builder = ItemBuilder::default();
 
-        let mut item = ItemBuilder::new_item("g", None, None, None, None, None);
+        let mut item = Item::new("g", None, None, None, None, None);
 
         let css = builder.css(&mut item);
         assert_eq!(css, "");
 
-        let style = macros::style!({
+        let style = style!({
             "font-weight": "26px"
         });
 
-        let mut item = ItemBuilder::new_item("g", None, Some(style), None, None, None);
+        let mut item = Item::new("g", None, Some(style), None, None, None);
 
         let css = builder.css(&mut item);
         assert_eq!(css, "#_2 {font-weight:26px }");

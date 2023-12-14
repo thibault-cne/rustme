@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use super::UserInfo;
 
-const QUERY: &'static str = r#"
+const QUERY: &str = r#"
 query UserInfo($id: String!) {
     matchedUser(username: $id) {
         username
@@ -27,7 +27,7 @@ query UserInfo($id: String!) {
     }
 }"#;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Client {
     init: bool,
     csrf: String,
@@ -94,16 +94,6 @@ impl Client {
         match res.json::<GraphQLResponse>().await {
             Ok(resp) => resp.try_into(),
             Err(_) => Err(()),
-        }
-    }
-}
-
-impl Default for Client {
-    fn default() -> Self {
-        Client {
-            init: false,
-            csrf: String::new(),
-            leetcode_session: String::new(),
         }
     }
 }
@@ -191,15 +181,15 @@ struct Profile {
     ranking: u32,
 }
 
-impl Into<super::Profile> for Profile {
-    fn into(self) -> super::Profile {
+impl From<Profile> for super::Profile {
+    fn from(value: Profile) -> super::Profile {
         super::Profile {
-            realname: self.realname,
-            about: self.about,
-            avatar: self.avatar,
-            skills: self.skills,
-            country: self.country,
-            ranking: self.ranking,
+            realname: value.realname,
+            about: value.about,
+            avatar: value.avatar,
+            skills: value.skills,
+            country: value.country,
+            ranking: value.ranking,
         }
     }
 }
