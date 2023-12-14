@@ -6,6 +6,14 @@ const QUERY: &'static str = r#"
 query UserInfo($id: String!) {
     matchedUser(username: $id) {
         username
+        profile {
+            realname: realName
+            about: aboutMe
+            avatar: userAvatar
+            skills: skillTags
+            country: countryName
+            ranking
+        }
         submitStats: submitStatsGlobal {
             acSubmissionNum {
                 difficulty
@@ -125,7 +133,7 @@ pub struct RequestBody<'a, T: Serialize> {
     variables: T,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct GraphQLResponse {
     data: Data,
@@ -139,7 +147,7 @@ impl TryInto<UserInfo> for GraphQLResponse {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct Data {
     matched_user: MatchedUser,
@@ -151,6 +159,7 @@ impl TryInto<UserInfo> for Data {
     fn try_into(self) -> Result<UserInfo, Self::Error> {
         Ok(UserInfo {
             username: self.matched_user.username,
+            profile: self.matched_user.profile.into(),
             streak: self.matched_user.user_calendar.streak,
             submissions: self
                 .matched_user
@@ -163,21 +172,45 @@ impl TryInto<UserInfo> for Data {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct MatchedUser {
     username: String,
+    profile: Profile,
     submit_stats: SubmitStats,
     user_calendar: UserCalendar,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
+struct Profile {
+    realname: String,
+    about: String,
+    avatar: String,
+    skills: Vec<String>,
+    country: Option<String>,
+    ranking: u32,
+}
+
+impl Into<super::Profile> for Profile {
+    fn into(self) -> super::Profile {
+        super::Profile {
+            realname: self.realname,
+            about: self.about,
+            avatar: self.avatar,
+            skills: self.skills,
+            country: self.country,
+            ranking: self.ranking,
+        }
+    }
+}
+
+#[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct SubmitStats {
     ac_submission_num: Vec<Submission>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct Submission {
     difficulty: String,
@@ -197,7 +230,7 @@ impl TryInto<super::Submission> for Submission {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct UserCalendar {
     streak: u32,

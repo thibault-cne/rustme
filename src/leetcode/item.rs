@@ -1,4 +1,7 @@
-use std::{collections::HashMap, fmt::Display};
+use std::collections::HashMap;
+use std::fmt::Display;
+
+use super::{Config, UserInfo};
 
 use crate::{attribute, style};
 
@@ -144,7 +147,47 @@ impl Item {
         }
     }
 
-    fn icon() -> Item {
+    pub fn push_child(&mut self, child: Item) {
+        if let Some(children) = self.children.as_mut() {
+            children.push(child)
+        } else {
+            self.children = Some(vec![child])
+        }
+    }
+
+    pub fn root(config: &Config, user_info: &UserInfo) -> Item {
+        let attr = attribute!({
+            "id": "root",
+            "width": format!("{}", config.width),
+            "height": format!("{}", config.height),
+            "viewBox": format!("0 0 {} {}", config.width, config.height),
+            "version": "1.1",
+            "xmlns": "http://www.w3.org/2000/svg",
+            "xmlns:xlink": "http://www.w3.org/1999/xlink"
+        });
+        let style = style!({
+            "fill": "none"
+        });
+        let backgroud_style = style!({
+            "transform": "translate(0.5px, 0.5px)",
+            "stroke": "var(--bg-2)",
+            "fill": "var(--bg-0)",
+            "stroke-width": 1,
+            "width": format!("{} px", config.width - 1),
+            "height": format!("{} px", config.height - 1),
+            "rx": "4px",
+        });
+
+        let childs = vec![
+            Item::new("title", None, None, None, None, Some(format!("{} | LeetCode Stat Card", user_info.username))),
+            Item::new("style", Some(attribute!({"id": "default-colors"})), None, None, None, Some(String::from("svg{opacity:0}:root{--bg-0:#fff;--bg-1:#e5e5e5;--bg-2:#d3d3d3;--bg-3:#d3d3d3;--text-0:#000;--text-1:#808080;--text-2:#808080;--text-3:#808080;--color-0:#ffa116;--color-1:#5cb85c;--color-2:#f0ad4e;--color-3:#d9534f}"))),
+            Item::new("rect", Some(attribute!({"id": "background"})), Some(backgroud_style), None, None, None),
+        ];
+
+        Item::new("svg", Some(attr), Some(style), None, Some(childs), None)
+    }
+
+    pub fn icon() -> Item {
         let style = HashMap::from_iter(vec![
             ("stroke".to_string(), Attribute::from("none")),
             ("fill".to_string(), Attribute::from("var(--text-0)")),
@@ -208,39 +251,47 @@ impl Item {
         )
     }
 
-    fn username(username: &str) -> Item {
-        let attr = HashMap::from_iter(vec![
-            ("id".to_string(), Attribute::from(username)),
-            (
-                "attr".to_string(),
-                Attribute::from(vec![
-                    (
-                        "href".to_string(),
-                        Attribute::from(format!("https://leetcode.com/{username}/")),
-                    ),
-                    ("target".to_string(), Attribute::from("_blank")),
-                ]),
-            ),
-        ]);
-        let style = macros::style! ({
-            "transform": "translate(65px, 40px)"
+    pub fn username(username: &str) -> Item {
+        let attr = attribute!({
+            "id": "username",
+            "href": format!("https://leetcode.com/{username}/"),
+            "target": "_blank"
+        });
+        let style = style!({
+            "transform": "translate(65px, 40px)",
         });
 
         Item::new("a", Some(attr), Some(style), None, None, None)
+    }
+
+    pub fn ranking(ranking: u32) -> Item {
+        let attr = attribute!({
+            "id": "ranking",
+            "content": format!("#{ranking}"),
+        });
+        let style = style!({
+            "transform": "translate(480px, 40px)",
+            "fill": "var(--text-1)",
+            "font-size": "18px",
+            "font-weight": "bold",
+            "text-anchor": "end"
+        });
+
+        Item::new("text", Some(attr), Some(style), None, None, None)
     }
 }
 
 mod macros {
     #[macro_export]
     macro_rules! style {
-        ({ $($key:literal: $value:literal),* }) => {
+        ({ $($key:literal: $value:expr),* }) => {
             std::collections::HashMap::<String, String>::from_iter(vec![
                 $(
                     ($key.to_string(), $value.to_string())
                 ),*
             ])
         };
-        ({ $($key:literal: $value:literal),*, }) => {
+        ({ $($key:literal: $value:expr),*, }) => {
             std::collections::HashMap::<String, String>::from_iter(vec![
                 $(
                     ($key.to_string(), $value.to_string())
