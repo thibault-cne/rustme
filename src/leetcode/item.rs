@@ -94,7 +94,7 @@ impl ItemBuilder {
             })
             .unwrap_or_default();
 
-        format!("#{} {{{} {}}}", id, style, children)
+        format!("#{} {{{}}} {}", id, style, children)
     }
 }
 
@@ -144,6 +144,10 @@ impl Item {
         }
     }
 
+    pub fn style(content: String) -> Item {
+        Item::new("style", None, None, None, None, Some(content))
+    }
+
     pub fn root(config: &Config, user_info: &UserInfo) -> Item {
         let attr = attribute!({
             "id": "root",
@@ -170,18 +174,18 @@ impl Item {
         let childs = vec![
             Item::new("title", None, None, None, None, Some(format!("{} | LeetCode Stat Card", user_info.username))),
             Item::new("style", Some(attribute!({"id": "default-colors"})), None, None, None, Some(String::from("svg{opacity:0}:root{--bg-0:#fff;--bg-1:#e5e5e5;--bg-2:#d3d3d3;--bg-3:#d3d3d3;--text-0:#000;--text-1:#808080;--text-2:#808080;--text-3:#808080;--color-0:#ffa116;--color-1:#5cb85c;--color-2:#f0ad4e;--color-3:#d9534f}"))),
-            Item::new("rect", Some(attribute!({"id": "background"})), Some(backgroud_style), None, None, None),
+            Item::new("rect", Some(attribute!({"id": "background"})), Some(backgroud_style), Some(true), None, None),
         ];
 
         Item::new("svg", Some(attr), Some(style), None, Some(childs), None)
     }
 
     pub fn icon() -> Item {
-        let style = HashMap::from_iter(vec![
-            ("stroke".to_string(), Attribute::from("none")),
-            ("fill".to_string(), Attribute::from("var(--text-0)")),
-            ("fill-rule".to_string(), Attribute::from("evenodd")),
-        ]);
+        let style = style!({
+            "stroke": "none",
+            "fill": "var(--text-0)",
+            "fill-rule": "evenodd",
+        });
         let child_1_attr = attribute!({
             "id": "C",
             "d": ICON_PATH[0],
@@ -205,10 +209,10 @@ impl Item {
             "fill": "#B3B3B3",
         });
 
-        Self::new(
+        let icon_path = Self::new(
             "g",
-            Some(style),
             None,
+            Some(style),
             None,
             Some(vec![
                 Item::new(
@@ -237,6 +241,21 @@ impl Item {
                 ),
             ]),
             None,
+        );
+
+        let attr = attribute!({"id": "icon"});
+
+        let style = style!({
+            "transform": "translate(20px, 15px) scale(0.27)",
+        });
+
+        Item::new(
+            "g",
+            Some(attr),
+            Some(style),
+            None,
+            Some(vec![icon_path]),
+            None,
         )
     }
 
@@ -250,13 +269,30 @@ impl Item {
             "transform": "translate(65px, 40px)",
         });
 
-        Item::new("a", Some(attr), Some(style), None, None, None)
+        let child_attr = attribute!({
+            "id": "username-text",
+        });
+        let child_style = style!({
+            "fill": "var(--text-0)",
+            "font-size": "24px",
+            "font-weight": "bold",
+        });
+
+        let child = Item::new(
+            "text",
+            Some(child_attr),
+            Some(child_style),
+            None,
+            None,
+            Some(username.to_string()),
+        );
+
+        Item::new("a", Some(attr), Some(style), None, Some(vec![child]), None)
     }
 
     pub fn ranking(ranking: u32) -> Item {
         let attr = attribute!({
             "id": "ranking",
-            "content": format!("#{ranking}"),
         });
         let style = style!({
             "transform": "translate(480px, 40px)",
@@ -266,7 +302,14 @@ impl Item {
             "text-anchor": "end"
         });
 
-        Item::new("text", Some(attr), Some(style), None, None, None)
+        Item::new(
+            "text",
+            Some(attr),
+            Some(style),
+            None,
+            None,
+            Some(format!("#{ranking}")),
+        )
     }
 }
 

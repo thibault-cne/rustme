@@ -4,6 +4,10 @@ use super::UserInfo;
 
 const QUERY: &str = r#"
 query UserInfo($id: String!) {
+    problems: allQuestionsCount { 
+        difficulty 
+        count 
+    }
     matchedUser(username: $id) {
         username
         profile {
@@ -141,6 +145,7 @@ impl TryInto<UserInfo> for GraphQLResponse {
 #[serde(rename_all = "camelCase")]
 struct Data {
     matched_user: MatchedUser,
+    problems: Vec<ProblemData>,
 }
 
 impl TryInto<UserInfo> for Data {
@@ -156,8 +161,15 @@ impl TryInto<UserInfo> for Data {
                 .submit_stats
                 .ac_submission_num
                 .into_iter()
-                .map(|s| s.try_into())
-                .collect::<Result<Vec<super::Submission>, ()>>()?,
+                .map(|s| {
+                    s.try_into_problem(
+                        self.problems
+                            .iter()
+                            .find(|data| data.difficulty == s.difficulty)
+                            .unwrap(),
+                    )
+                })
+                .collect::<Result<Vec<super::Problem>, ()>>()?,
         })
     }
 }
@@ -208,13 +220,12 @@ struct Submission {
     submissions: u32,
 }
 
-impl TryInto<super::Submission> for Submission {
-    type Error = ();
-
-    fn try_into(self) -> Result<super::Submission, Self::Error> {
-        Ok(super::Submission {
+impl Submission {
+    fn try_into_problem(&self, problem_data: &ProblemData) -> Result<super::Problem, ()> {
+        Ok(super::Problem {
             difficulty: super::Difficulty::try_from(self.difficulty.as_str())?,
             count: self.count,
+            total: problem_data.count,
             submissions: self.submissions,
         })
     }
@@ -224,4 +235,10 @@ impl TryInto<super::Submission> for Submission {
 #[serde(rename_all = "camelCase")]
 struct UserCalendar {
     streak: u32,
+}
+
+#[derive(serde::Deserialize, Debug)]
+struct ProblemData {
+    difficulty: String,
+    count: u32,
 }

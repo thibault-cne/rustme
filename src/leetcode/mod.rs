@@ -7,6 +7,7 @@ mod item;
 use extension::Extension;
 use item::{Item, ItemBuilder};
 
+pub use extension::Animation;
 pub use graphql::{Client, Id};
 
 #[derive(Debug)]
@@ -31,12 +32,29 @@ impl Generator {
     }
 
     fn hydrate(self, user_info: UserInfo) -> String {
+        let mut ext_style = Vec::new();
+        let mut ext_body = Vec::new();
+
+        self.config.extensions.iter().for_each(|ext| {
+            ext.extend(&self, &user_info, &mut ext_body, &mut ext_style);
+        });
+
         let mut root = Item::root(&self.config, &user_info);
+
         root.push_child(Item::icon());
         root.push_child(Item::username(&user_info.username));
         root.push_child(Item::ranking(user_info.profile.ranking));
 
         let mut builder = ItemBuilder::default();
+
+        let mut style = vec![
+            "@namespace svg url(http://www.w3.org/2000/svg);".to_string(),
+            builder.css(&mut root),
+        ];
+        style.extend_from_slice(&ext_style);
+        style.push("svg{opacity:1}".to_string());
+
+        root.push_child(Item::style(style.join("\n")));
 
         builder.stringify(&mut root)
     }
@@ -58,6 +76,10 @@ impl Config {
             ..Default::default()
         }
     }
+
+    pub fn add_extension(&mut self, ext: Box<dyn Extension>) {
+        self.extensions.push(ext);
+    }
 }
 
 impl Default for Config {
@@ -76,8 +98,16 @@ impl Default for Config {
 pub struct UserInfo {
     username: String,
     profile: Profile,
-    submissions: Vec<Submission>,
+    submissions: Vec<Problem>,
     streak: u32,
+}
+
+impl UserInfo {
+    fn problems_stats(&self) -> (u32, u32) {
+        self.submissions
+            .iter()
+            .fold((0, 0), |acc, s| (acc.0 + s.total, acc.1 + s.count))
+    }
 }
 
 #[derive(Debug)]
@@ -91,9 +121,10 @@ pub struct Profile {
 }
 
 #[derive(Debug)]
-pub struct Submission {
+pub struct Problem {
     difficulty: Difficulty,
     count: u32,
+    total: u32,
     submissions: u32,
 }
 
