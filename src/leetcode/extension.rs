@@ -76,3 +76,24 @@ impl Extension for Animation {
         style.push(css);
     }
 }
+
+#[derive(Debug)]
+pub struct Themes(Vec<super::theme::Theme>);
+
+impl Extension for Themes {
+    fn extend(
+        &self,
+        generator: &Generator,
+        user_info: &UserInfo,
+        body: &mut Vec<Item>,
+        style: &mut Vec<String>,
+    ) {
+        self.0.iter().for_each(|t| t.extend(style));
+    }
+}
+
+impl From<Vec<super::theme::Theme>> for Themes {
+    fn from(themes: Vec<super::theme::Theme>) -> Self {
+        Themes(themes)
+    }
+}

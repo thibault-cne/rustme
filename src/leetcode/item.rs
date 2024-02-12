@@ -107,7 +107,7 @@ impl Default for ItemBuilder {
 pub struct Item {
     item_type: String,
     attr: HashMap<String, Attribute>,
-    style: HashMap<String, String>,
+    style: Vec<(String, String)>,
     single: Option<bool>,
     children: Option<Vec<Item>>,
     content: Option<String>,
@@ -117,7 +117,7 @@ impl Item {
     fn new(
         item_type: &str,
         attr: Option<HashMap<String, Attribute>>,
-        style: Option<HashMap<String, String>>,
+        style: Option<Vec<(String, String)>>,
         single: Option<bool>,
         children: Option<Vec<Item>>,
         content: Option<String>,
@@ -158,18 +158,18 @@ impl Item {
             "xmlns": "http://www.w3.org/2000/svg",
             "xmlns:xlink": "http://www.w3.org/1999/xlink"
         });
-        let style = style!({
+        let style = style! {
             "fill": "none"
-        });
-        let backgroud_style = style!({
+        };
+        let backgroud_style = style! {
             "transform": "translate(0.5px, 0.5px)",
             "stroke": "var(--bg-2)",
             "fill": "var(--bg-0)",
             "stroke-width": 1,
-            "width": format!("{} px", config.width - 1),
-            "height": format!("{} px", config.height - 1),
+            "width": format!("{}px", config.width - 1),
+            "height": format!("{}px", config.height - 1),
             "rx": "4px",
-        });
+        };
 
         let childs = vec![
             Item::new("title", None, None, None, None, Some(format!("{} | LeetCode Stat Card", user_info.username))),
@@ -181,33 +181,33 @@ impl Item {
     }
 
     pub fn icon() -> Item {
-        let style = style!({
+        let style = style! {
             "stroke": "none",
             "fill": "var(--text-0)",
             "fill-rule": "evenodd",
-        });
+        };
         let child_1_attr = attribute!({
             "id": "C",
             "d": ICON_PATH[0],
         });
-        let child_1_style = style!({
+        let child_1_style = style! {
             "fill": "#FFA116",
             "fill-rule": "nonzero"
-        });
+        };
         let child_2_attr = attribute!({
             "id": "L",
             "d": ICON_PATH[1]
         });
-        let child_2_style = style!({
+        let child_2_style = style! {
             "fill": "#000000",
-        });
+        };
         let child_3_attr = attribute!({
             "id": "dash",
             "d": ICON_PATH[2]
         });
-        let child_3_style = style!({
+        let child_3_style = style! {
             "fill": "#B3B3B3",
-        });
+        };
 
         let icon_path = Self::new(
             "g",
@@ -245,9 +245,9 @@ impl Item {
 
         let attr = attribute!({"id": "icon"});
 
-        let style = style!({
+        let style = style! {
             "transform": "translate(20px, 15px) scale(0.27)",
-        });
+        };
 
         Item::new(
             "g",
@@ -265,18 +265,18 @@ impl Item {
             "href": format!("https://leetcode.com/{username}/"),
             "target": "_blank"
         });
-        let style = style!({
+        let style = style! {
             "transform": "translate(65px, 40px)",
-        });
+        };
 
         let child_attr = attribute!({
             "id": "username-text",
         });
-        let child_style = style!({
+        let child_style = style! {
             "fill": "var(--text-0)",
             "font-size": "24px",
             "font-weight": "bold",
-        });
+        };
 
         let child = Item::new(
             "text",
@@ -294,13 +294,13 @@ impl Item {
         let attr = attribute!({
             "id": "ranking",
         });
-        let style = style!({
+        let style = style! {
             "transform": "translate(480px, 40px)",
             "fill": "var(--text-1)",
             "font-size": "18px",
             "font-weight": "bold",
             "text-anchor": "end"
-        });
+        };
 
         Item::new(
             "text",
@@ -316,19 +316,19 @@ impl Item {
 mod macros {
     #[macro_export]
     macro_rules! style {
-        ({ $($key:literal: $value:expr),* }) => {
-            std::collections::HashMap::<String, String>::from_iter(vec![
+        { $($key:literal: $value:expr),* } => {
+            vec![
                 $(
                     ($key.to_string(), $value.to_string())
                 ),*
-            ])
+            ]
         };
-        ({ $($key:literal: $value:expr),*, }) => {
-            std::collections::HashMap::<String, String>::from_iter(vec![
+        { $($key:literal: $value:expr),*, } => {
+            vec![
                 $(
                     ($key.to_string(), $value.to_string())
                 ),*
-            ])
+            ]
         };
     }
 
@@ -560,9 +560,9 @@ mod tests {
         let css = builder.css(&mut item);
         assert_eq!(css, "");
 
-        let style = style!({
+        let style = style! {
             "font-weight": "26px"
-        });
+        };
 
         let mut item = Item::new("g", None, Some(style), None, None, None);
 

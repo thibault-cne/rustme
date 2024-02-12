@@ -3,8 +3,13 @@ mod leetcode;
 #[tokio::main]
 async fn main() {
     let mut config = leetcode::Config::new("thibaultcne");
-    let ext = Box::new(leetcode::Animation);
-    config.add_extension(ext);
+    let animation = Box::new(leetcode::Animation);
+    let themes = Box::new(leetcode::Themes::from(vec![
+        leetcode::theme::DARK,
+        leetcode::theme::LIGHT,
+    ]));
+    config.add_extension(animation);
+    config.add_extension(themes);
 
     let generator = leetcode::Generator::new(config);
 

@@ -3,11 +3,12 @@ use crate::leetcode;
 mod extension;
 mod graphql;
 mod item;
+pub mod theme;
 
 use extension::Extension;
 use item::{Item, ItemBuilder};
 
-pub use extension::Animation;
+pub use extension::{Animation, Themes};
 pub use graphql::{Client, Id};
 
 #[derive(Debug)]
@@ -26,9 +27,12 @@ impl Generator {
 
     pub async fn generate(self) -> String {
         let user_id = leetcode::Id::new(&self.config.username);
-        let user_info = leetcode::Client::default().get(user_id).await;
+        let user_info = leetcode::Client::default()
+            .get(user_id)
+            .await
+            .unwrap_or_default();
 
-        self.hydrate(user_info.unwrap())
+        self.hydrate(user_info)
     }
 
     fn hydrate(self, user_info: UserInfo) -> String {
@@ -110,6 +114,22 @@ impl UserInfo {
     }
 }
 
+impl Default for UserInfo {
+    fn default() -> Self {
+        UserInfo {
+            username: "thibaultcne".to_string(),
+            profile: Profile::default(),
+            submissions: vec![Problem {
+                difficulty: Difficulty::Easy,
+                count: 10,
+                total: 1000,
+                submissions: 100,
+            }],
+            streak: 50,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Profile {
     realname: String,
@@ -118,6 +138,19 @@ pub struct Profile {
     skills: Vec<String>,
     country: Option<String>,
     ranking: u32,
+}
+
+impl Default for Profile {
+    fn default() -> Self {
+        Profile {
+            realname: "Thibault Cheneviere".to_string(),
+            about: String::new(),
+            avatar: String::new(),
+            skills: Vec::new(),
+            country: Some("France".to_string()),
+            ranking: 810_207,
+        }
+    }
 }
 
 #[derive(Debug)]
