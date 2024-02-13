@@ -1,21 +1,32 @@
-use crate::leetcode;
+use core::{
+    item::{Item, ItemBuilder},
+    Extension, Generator as GeneratorTrait,
+};
 
-mod extension;
+pub mod extension;
+pub mod font;
 mod graphql;
 mod item;
-mod macros;
 pub mod theme;
 
-use extension::Extension;
-use item::{Item, ItemBuilder};
-
-pub use extension::{Animation, Fonts, Themes, BALOO_2};
-pub use graphql::{Client, Id};
-
-#[derive(Debug)]
+#[derive(Default)]
 pub struct Generator {
     config: Config,
     verbose: bool,
+    user_info: Option<UserInfo>,
+}
+
+impl GeneratorTrait for Generator {
+    async fn generate(mut self) -> String {
+        let user_id = graphql::Id::new(&self.config.username);
+        let user_info = graphql::Client::default()
+            .get(user_id)
+            .await
+            .unwrap_or_default();
+        self.user_info = Some(user_info);
+
+        self.hydrate()
+    }
 }
 
 impl Generator {
@@ -23,35 +34,27 @@ impl Generator {
         Generator {
             config,
             verbose: false,
+            user_info: None,
         }
     }
 
-    pub async fn generate(self) -> String {
-        let user_id = leetcode::Id::new(&self.config.username);
-        let user_info = leetcode::Client::default()
-            .get(user_id)
-            .await
-            .unwrap_or_default();
-
-        self.hydrate(user_info)
-    }
-
-    fn hydrate(self, user_info: UserInfo) -> String {
+    fn hydrate(self) -> String {
         let mut ext_style = Vec::new();
         let mut ext_body = Vec::new();
+        let user_info = self.user_info.as_ref().unwrap();
 
         self.config.extensions.iter().for_each(|ext| {
-            ext.extend(&self, &user_info, &mut ext_body, &mut ext_style);
+            ext.extend(&self, &mut ext_body, &mut ext_style);
         });
 
-        let mut root = Item::root(&self.config, &user_info);
+        let mut root = item::root(&self.config, user_info);
         let (solved, total) = user_info.problems_stats();
 
-        root.push_child(Item::icon());
-        root.push_child(Item::username(&user_info.username));
-        root.push_child(Item::ranking(user_info.profile.ranking));
-        root.push_child(Item::total_solved(solved, total));
-        root.push_child(Item::solved(user_info.submissions));
+        root.push_child(item::icon());
+        root.push_child(item::username(&user_info.username));
+        root.push_child(item::ranking(user_info.profile.ranking));
+        root.push_child(item::total_solved(solved, total));
+        root.push_child(item::solved(&user_info.submissions));
 
         let mut builder = ItemBuilder::default();
 
@@ -66,15 +69,18 @@ impl Generator {
 
         builder.stringify(&mut root)
     }
+
+    fn get_user_info(&self) -> &UserInfo {
+        self.user_info.as_ref().unwrap()
+    }
 }
 
-#[derive(Debug)]
 pub struct Config {
     username: String,
     width: u32,
     height: u32,
     css: Vec<String>,
-    extensions: Vec<Box<dyn Extension>>,
+    extensions: Vec<Box<dyn Extension<Generator>>>,
 }
 
 impl Config {
@@ -85,7 +91,7 @@ impl Config {
         }
     }
 
-    pub fn add_extension(&mut self, ext: Box<dyn Extension>) {
+    pub fn add_extension(&mut self, ext: Box<dyn Extension<Generator>>) {
         self.extensions.push(ext);
     }
 }
@@ -103,7 +109,7 @@ impl Default for Config {
 }
 
 #[derive(Debug)]
-pub struct UserInfo {
+struct UserInfo {
     username: String,
     profile: Profile,
     submissions: Vec<Problem>,
@@ -123,7 +129,7 @@ impl UserInfo {
 impl Default for UserInfo {
     fn default() -> Self {
         UserInfo {
-            username: "thibaultcne".to_string(),
+            username: "thibault-cne".to_string(),
             profile: Profile::default(),
             submissions: vec![Problem {
                 difficulty: Difficulty::Easy,
@@ -137,7 +143,7 @@ impl Default for UserInfo {
 }
 
 #[derive(Debug)]
-pub struct Profile {
+struct Profile {
     realname: String,
     about: String,
     avatar: String,
@@ -160,7 +166,7 @@ impl Default for Profile {
 }
 
 #[derive(Debug)]
-pub struct Problem {
+struct Problem {
     difficulty: Difficulty,
     count: u32,
     total: u32,
@@ -168,7 +174,7 @@ pub struct Problem {
 }
 
 #[derive(Debug, Eq, PartialEq, Clone, Copy)]
-pub enum Difficulty {
+enum Difficulty {
     All,
     Easy,
     Medium,

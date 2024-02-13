@@ -20,12 +20,12 @@ macro_rules! style {
 macro_rules! attribute {
     // Done with trailing comma.
     (@array [$($elems:expr,)*]) => {
-        attribute_internal_vec![$($elems,)*]
+        vec![$($elems,)*]
     };
 
     // Done without trailing comma.
     (@array [$($elems:expr),*]) => {
-        attribute_internal_vec![$($elems),*]
+        vec![$($elems),*]
     };
 
     // Next element is `null`.
@@ -120,26 +120,26 @@ macro_rules! attribute {
     };
 
     ([]) => {
-        Attribute::from(vec![])
+        $crate::item::Attribute::from(vec![])
     };
 
     ([ $($tt:tt)+ ]) => {
-        Attribute::from(attribute!(@array [] $($tt)+))
+        $crate::item::Attribute::from(attribute!(@array [] $($tt)+))
     };
 
     ({}) => {
-        Attribute::from(HashMap::<String, Attribute>::new())
+        $crate::item::Attribute::from(HashMap::<String, $crate::item::Attribute>::new())
     };
 
     ({ $($tt:tt)+ }) => {
         {
-            let mut map = std::collections::HashMap::<String, Attribute>::new();
+            let mut map = std::collections::HashMap::<String, $crate::item::Attribute>::new();
             attribute!(@map map () ($($tt)+) ($($tt)+));
             map
         }
     };
 
     ($other:expr) => {
-        Attribute::from($other)
+        $crate::item::Attribute::from($other)
     }
 }

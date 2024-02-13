@@ -1,14 +1,8 @@
-use super::{Generator, Item, UserInfo};
+use core::{item::Item, Extension};
 
-pub trait Extension: std::fmt::Debug {
-    fn extend(
-        &self,
-        generator: &Generator,
-        user_info: &UserInfo,
-        body: &mut Vec<Item>,
-        style: &mut Vec<String>,
-    );
-}
+use crate::font::Font;
+pub use crate::theme::Theme;
+use crate::Generator;
 
 #[derive(Debug)]
 pub struct Animation;
@@ -46,14 +40,8 @@ impl Animation {
     }
 }
 
-impl Extension for Animation {
-    fn extend(
-        &self,
-        _: &Generator,
-        user_info: &UserInfo,
-        _: &mut Vec<Item>,
-        style: &mut Vec<String>,
-    ) {
+impl Extension<Generator> for Animation {
+    fn extend(&self, generator: &Generator, _: &mut Vec<Item>, style: &mut Vec<String>) {
         let mut css = Animation::KEYFRAME.to_string();
         let speed = 1_f32;
 
@@ -66,7 +54,7 @@ impl Extension for Animation {
             ))
         });
 
-        let (solved, total) = user_info.problems_stats();
+        let (solved, total) = generator.get_user_info().problems_stats();
         css.push_str(&self.circle(
             "#total-solved-ring",
             std::f64::consts::PI * 80.0 * solved as f64 / total as f64,
@@ -78,74 +66,25 @@ impl Extension for Animation {
 }
 
 #[derive(Debug)]
-pub struct Themes(Vec<super::theme::Theme>);
+pub struct Themes(Vec<Theme>);
 
-impl Extension for Themes {
-    fn extend(
-        &self,
-        generator: &Generator,
-        user_info: &UserInfo,
-        body: &mut Vec<Item>,
-        style: &mut Vec<String>,
-    ) {
-        self.0.iter().for_each(|t| t.extend(style));
+impl Extension<Generator> for Themes {
+    fn extend(&self, generator: &Generator, body: &mut Vec<Item>, style: &mut Vec<String>) {
+        self.0.iter().for_each(|t| t.extend(generator, body, style));
     }
 }
 
-impl From<Vec<super::theme::Theme>> for Themes {
-    fn from(themes: Vec<super::theme::Theme>) -> Self {
+impl From<Vec<Theme>> for Themes {
+    fn from(themes: Vec<Theme>) -> Self {
         Themes(themes)
-    }
-}
-
-#[derive(Debug)]
-pub struct Font {
-    font: FontType,
-}
-
-#[derive(Debug)]
-pub enum FontType {
-    Baloo2,
-}
-
-impl std::fmt::Display for FontType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FontType::Baloo2 => write!(f, "Baloo 2"),
-        }
-    }
-}
-
-impl FontType {
-    fn format_url(&self) -> String {
-        match self {
-            FontType::Baloo2 => "baloo_2".to_string(),
-        }
-    }
-}
-
-#[derive(serde::Deserialize)]
-struct JsonFont {
-    name: String,
-    base64: String,
-}
-
-impl Font {
-    const BASE_URL: &'static str = "https://cdn.jsdelivr.net/gh/JacobLinCool/nano-font@json/";
-
-    async fn fetch(&self) -> JsonFont {
-        let url = format!("{}{}.json", Self::BASE_URL, self.font.format_url());
-        let resp = reqwest::get(&url).await.unwrap();
-        let json: JsonFont = resp.json().await.unwrap();
-        json
     }
 }
 
 #[derive(Debug)]
 pub struct Fonts(Vec<Font>);
 
-impl Extension for Fonts {
-    fn extend(&self, _: &Generator, _: &UserInfo, _: &mut Vec<Item>, style: &mut Vec<String>) {
+impl Extension<Generator> for Fonts {
+    fn extend(&self, _: &Generator, _: &mut Vec<Item>, style: &mut Vec<String>) {
         let fonts = self.0.iter().map(|f| f.fetch());
         let fonts = futures::executor::block_on(futures::future::join_all(fonts));
         fonts.iter().for_each(|f| {
@@ -172,7 +111,3 @@ impl From<Vec<Font>> for Fonts {
         Fonts(fonts)
     }
 }
-
-pub const BALOO_2: Font = Font {
-    font: FontType::Baloo2,
-};

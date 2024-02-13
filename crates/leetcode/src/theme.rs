@@ -1,3 +1,7 @@
+use core::Extension;
+
+use crate::Generator;
+
 #[derive(Debug)]
 pub struct Theme {
     prefered_color_scheme: &'static str,
@@ -5,20 +9,8 @@ pub struct Theme {
     style: &'static str,
 }
 
-impl Theme {
-    const fn new(
-        prefered_color_scheme: &'static str,
-        colors: &'static [Variable],
-        style: &'static str,
-    ) -> Theme {
-        Theme {
-            prefered_color_scheme,
-            colors,
-            style,
-        }
-    }
-
-    pub fn extend(&self, style: &mut Vec<String>) {
+impl Extension<Generator> for Theme {
+    fn extend(&self, _: &Generator, _: &mut Vec<core::item::Item>, style: &mut Vec<String>) {
         let vars = self.vars();
         let mut theme = vars.into_iter().fold(
             format!(
@@ -32,6 +24,20 @@ impl Theme {
         theme.push_str(self.style);
         theme.push('}');
         style.push(minimize(&theme).to_string());
+    }
+}
+
+impl Theme {
+    const fn new(
+        prefered_color_scheme: &'static str,
+        colors: &'static [Variable],
+        style: &'static str,
+    ) -> Theme {
+        Theme {
+            prefered_color_scheme,
+            colors,
+            style,
+        }
     }
 
     fn vars(&self) -> Vec<String> {

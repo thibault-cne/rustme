@@ -4,9 +4,9 @@ use super::UserInfo;
 
 const QUERY: &str = r#"
 query UserInfo($id: String!) {
-    problems: allQuestionsCount { 
-        difficulty 
-        count 
+    problems: allQuestionsCount {
+        difficulty
+        count
     }
     matchedUser(username: $id) {
         username
