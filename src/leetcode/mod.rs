@@ -3,12 +3,13 @@ use crate::leetcode;
 mod extension;
 mod graphql;
 mod item;
+mod macros;
 pub mod theme;
 
 use extension::Extension;
 use item::{Item, ItemBuilder};
 
-pub use extension::{Animation, Themes};
+pub use extension::{Animation, Fonts, Themes, BALOO_2};
 pub use graphql::{Client, Id};
 
 #[derive(Debug)]
@@ -44,10 +45,13 @@ impl Generator {
         });
 
         let mut root = Item::root(&self.config, &user_info);
+        let (solved, total) = user_info.problems_stats();
 
         root.push_child(Item::icon());
         root.push_child(Item::username(&user_info.username));
         root.push_child(Item::ranking(user_info.profile.ranking));
+        root.push_child(Item::total_solved(solved, total));
+        root.push_child(Item::solved(user_info.submissions));
 
         let mut builder = ItemBuilder::default();
 
@@ -58,7 +62,7 @@ impl Generator {
         style.extend_from_slice(&ext_style);
         style.push("svg{opacity:1}".to_string());
 
-        root.push_child(Item::style(style.join("\n")));
+        root.push_child(Item::style(style.join("")));
 
         builder.stringify(&mut root)
     }
@@ -110,7 +114,9 @@ impl UserInfo {
     fn problems_stats(&self) -> (u32, u32) {
         self.submissions
             .iter()
-            .fold((0, 0), |acc, s| (acc.0 + s.total, acc.1 + s.count))
+            .find(|p| p.difficulty == Difficulty::All)
+            .map(|p| (p.count, p.total))
+            .unwrap()
     }
 }
 
@@ -161,12 +167,23 @@ pub struct Problem {
     submissions: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Difficulty {
     All,
     Easy,
     Medium,
     Hard,
+}
+
+impl Difficulty {
+    pub fn capitalize(&self) -> String {
+        match self {
+            Self::All => "All".to_string(),
+            Self::Easy => "Easy".to_string(),
+            Self::Medium => "Medium".to_string(),
+            Self::Hard => "Hard".to_string(),
+        }
+    }
 }
 
 impl TryFrom<&str> for Difficulty {
@@ -180,5 +197,17 @@ impl TryFrom<&str> for Difficulty {
             "Hard" => Ok(Self::Hard),
             _ => Err(()),
         }
+    }
+}
+
+impl std::fmt::Display for Difficulty {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = match self {
+            Self::All => "all",
+            Self::Easy => "easy",
+            Self::Medium => "medium",
+            Self::Hard => "hard",
+        };
+        write!(f, "{}", value)
     }
 }
