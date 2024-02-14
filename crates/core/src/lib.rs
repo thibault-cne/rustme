@@ -1,3 +1,4 @@
+pub mod font;
 pub mod item;
 pub mod macros;
 

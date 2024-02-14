@@ -1,6 +1,5 @@
-use core::{item::Item, Extension};
+use core::{font::Font, item::Item, Extension};
 
-use crate::font::Font;
 pub use crate::theme::Theme;
 use crate::Generator;
 
@@ -109,5 +108,11 @@ impl Extension<Generator> for Fonts {
 impl From<Vec<Font>> for Fonts {
     fn from(fonts: Vec<Font>) -> Self {
         Fonts(fonts)
+    }
+}
+
+impl From<&[Font]> for Fonts {
+    fn from(fonts: &[Font]) -> Self {
+        Fonts(fonts.to_vec())
     }
 }

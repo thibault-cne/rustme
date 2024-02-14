@@ -1,46 +1,16 @@
-#[derive(Debug)]
-pub struct Font {
-    font: FontType,
+use core::font::Font;
+
+macro_rules! fonts {
+    ($($const:ident => $type:ident);*;) => {
+        $(
+            pub const $const: Font = Font::$type;
+        )*
+
+        pub const ALL_FONTS: &[Font] = &[$($const),*];
+    };
 }
 
-#[derive(Debug)]
-pub enum FontType {
-    Baloo2,
-}
-
-impl std::fmt::Display for FontType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FontType::Baloo2 => write!(f, "Baloo 2"),
-        }
-    }
-}
-
-impl FontType {
-    fn format_url(&self) -> String {
-        match self {
-            FontType::Baloo2 => "baloo_2".to_string(),
-        }
-    }
-}
-
-#[derive(serde::Deserialize)]
-pub(crate) struct JsonFont {
-    pub name: String,
-    pub base64: String,
-}
-
-impl Font {
-    const BASE_URL: &'static str = "https://cdn.jsdelivr.net/gh/JacobLinCool/nano-font@json/";
-
-    pub(crate) async fn fetch(&self) -> JsonFont {
-        let url = format!("{}{}.json", Self::BASE_URL, self.font.format_url());
-        let resp = reqwest::get(&url).await.unwrap();
-        let json: JsonFont = resp.json().await.unwrap();
-        json
-    }
-}
-
-pub const BALOO_2: Font = Font {
-    font: FontType::Baloo2,
-};
+fonts!(
+    BALOO_2 => Baloo2;
+    FORMULA_1 => Formula1;
+);

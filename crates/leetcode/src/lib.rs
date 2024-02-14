@@ -79,7 +79,6 @@ pub struct Config {
     username: String,
     width: u32,
     height: u32,
-    css: Vec<String>,
     extensions: Vec<Box<dyn Extension<Generator>>>,
 }
 
@@ -102,7 +101,6 @@ impl Default for Config {
             width: 500,
             height: 200,
             username: String::from("thibaultcne"),
-            css: Vec::new(),
             extensions: Vec::new(),
         }
     }

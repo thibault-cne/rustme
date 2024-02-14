@@ -11,7 +11,7 @@ async fn main() {
     let mut config = Config::new("thibault-cne");
     let animation = Box::new(Animation);
     let themes = Box::new(Themes::from(vec![DARK, LIGHT]));
-    let fonts: Box<Fonts> = Box::new(vec![BALOO_2].into());
+    let fonts = Box::new(Fonts::from(vec![BALOO_2]));
     config.add_extension(animation);
     config.add_extension(themes);
     config.add_extension(fonts);
