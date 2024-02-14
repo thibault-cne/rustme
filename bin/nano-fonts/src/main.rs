@@ -45,10 +45,11 @@ impl Font {
     fn convert(&self) -> Result<JsonFont> {
         let ttf = std::fs::read(format!("font/{}", self.filename))?;
         let woff2 = woff2::convert_ttf_to_woff2(&ttf, &[], 11, true).map_err(|_| Error::Woff2)?;
+        let base64 = base64::engine::general_purpose::STANDARD.encode(woff2);
 
         Ok(JsonFont {
             name: self.name.to_string(),
-            base64: base64::engine::general_purpose::STANDARD.encode(woff2),
+            base64: format!("data:font/woff2;charset=utf-8;base64,{}", base64),
         })
     }
 
