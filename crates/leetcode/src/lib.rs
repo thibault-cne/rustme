@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use core::{
     item::{Item, ItemBuilder},
     Extension, Generator as GeneratorTrait,
