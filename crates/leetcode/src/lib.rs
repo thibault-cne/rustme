@@ -38,16 +38,16 @@ impl Generator {
         }
     }
 
-    fn hydrate(self) -> String {
+    fn hydrate(mut self) -> String {
         let mut ext_style = Vec::new();
         let mut ext_body = Vec::new();
-        let user_info = self.user_info.as_ref().unwrap();
+        let user_info = self.get_user_info();
 
-        self.config.extensions.iter().for_each(|ext| {
-            ext.extend(&self, &mut ext_body, &mut ext_style);
+        self.config.extensions.clone().iter().for_each(|ext| {
+            ext.extend(&mut self, &mut ext_body, &mut ext_style);
         });
 
-        let mut root = item::root(&self.config, user_info);
+        let mut root = item::root(self.config.width, self.config.height, &user_info);
         let (solved, total) = user_info.problems_stats();
 
         root.push_child(item::icon());
@@ -70,16 +70,17 @@ impl Generator {
         builder.stringify(&mut root)
     }
 
-    fn get_user_info(&self) -> &UserInfo {
-        self.user_info.as_ref().unwrap()
+    fn get_user_info(&self) -> UserInfo {
+        self.user_info.clone().unwrap()
     }
 }
 
+#[derive(Clone)]
 pub struct Config {
     username: String,
     width: u32,
     height: u32,
-    extensions: Vec<Box<dyn Extension<Generator>>>,
+    extensions: Vec<extension::Extension>,
 }
 
 impl Config {
@@ -90,7 +91,7 @@ impl Config {
         }
     }
 
-    pub fn add_extension(&mut self, ext: Box<dyn Extension<Generator>>) {
+    pub fn add_extension(&mut self, ext: extension::Extension) {
         self.extensions.push(ext);
     }
 }
@@ -106,7 +107,7 @@ impl Default for Config {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct UserInfo {
     username: String,
     profile: Profile,
@@ -140,7 +141,7 @@ impl Default for UserInfo {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Profile {
     realname: String,
     about: String,
@@ -163,7 +164,7 @@ impl Default for Profile {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Problem {
     difficulty: Difficulty,
     count: u32,

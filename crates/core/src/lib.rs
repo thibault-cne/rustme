@@ -11,5 +11,5 @@ pub trait Generator: Default + Send {
 }
 
 pub trait Extension<G: Generator>: Send {
-    fn extend(&self, generator: &G, body: &mut Vec<Item>, style: &mut Vec<String>);
+    fn extend(&self, generator: &mut G, body: &mut Vec<Item>, style: &mut Vec<String>);
 }

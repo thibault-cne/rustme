@@ -2,7 +2,7 @@ use core::Extension;
 
 use crate::Generator;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Theme {
     prefered_color_scheme: &'static str,
     colors: &'static [Variable],
@@ -10,7 +10,7 @@ pub struct Theme {
 }
 
 impl Extension<Generator> for Theme {
-    fn extend(&self, _: &Generator, _: &mut Vec<core::item::Item>, style: &mut Vec<String>) {
+    fn extend(&self, _: &mut Generator, _: &mut Vec<core::item::Item>, style: &mut Vec<String>) {
         let vars = self.vars();
         let mut theme = vars.into_iter().fold(
             format!(

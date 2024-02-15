@@ -1,15 +1,40 @@
-use core::{font::Font, item::Item, Extension};
+use core::{font::Font, item::Item, Extension as ExtensionTrait};
 
 pub use crate::theme::Theme;
 use crate::Generator;
 
-#[derive(Debug)]
-pub struct Animation;
+#[derive(Clone)]
+pub enum Extension {
+    Animation,
+    Theme(Theme),
+    Themes(Vec<Theme>),
+    Fonts(Vec<Font>),
+}
 
-impl Animation {
-    const KEYFRAME: &'static str = "@keyframes fade_in{from{opacity:0}to{opacity:1}}";
+impl ExtensionTrait<Generator> for Extension {
+    fn extend(&self, generator: &mut Generator, items: &mut Vec<Item>, style: &mut Vec<String>) {
+        match self {
+            Extension::Animation => {
+                animation::extend(generator, items, style);
+            }
+            Extension::Theme(theme) => {
+                theme.extend(generator, items, style);
+            }
+            Extension::Themes(themes) => themes::extend(themes, generator, items, style),
+            Extension::Fonts(fonts) => {
+                fonts::extend(fonts, generator, items, style);
+            }
+        }
+    }
+}
 
-    fn order(&self) -> Vec<&str> {
+mod animation {
+    use crate::Generator;
+    use core::item::Item;
+
+    const KEYFRAME: &str = "@keyframes fade_in{from{opacity:0}to{opacity:1}}";
+
+    fn order() -> Vec<&'static str> {
         vec![
             "#icon",
             "#username",
@@ -32,19 +57,17 @@ impl Animation {
         ]
     }
 
-    fn circle(&self, selector: &str, len: f64, delay: f32) -> String {
+    fn circle(selector: &str, len: f64, delay: f32) -> String {
         let animation = format!("@keyframes circle{{0%{{opacity:0;stroke-dasharray:0 1000}}50%{{opacity:1}}100%{{opacity:1;stroke-dasharray:{len} 10000}}}}");
         let style = format!("{selector}{{animation:circle 1.2s ease {delay}s 1 forwards}}");
         format!("{}{}", animation, style)
     }
-}
 
-impl Extension<Generator> for Animation {
-    fn extend(&self, generator: &Generator, _: &mut Vec<Item>, style: &mut Vec<String>) {
-        let mut css = Animation::KEYFRAME.to_string();
+    pub fn extend(generator: &mut Generator, _: &mut Vec<Item>, style: &mut Vec<String>) {
+        let mut css = KEYFRAME.to_string();
         let speed = 1_f32;
 
-        self.order().iter().enumerate().for_each(|(i, select)| {
+        order().iter().enumerate().for_each(|(i, select)| {
             css.push_str(&format!(
                 "{}{{opacity:0;animation:fade_in {}s ease {}s 1 forwards}}",
                 select,
@@ -54,7 +77,7 @@ impl Extension<Generator> for Animation {
         });
 
         let (solved, total) = generator.get_user_info().problems_stats();
-        css.push_str(&self.circle(
+        css.push_str(&circle(
             "#total-solved-ring",
             std::f64::consts::PI * 80.0 * solved as f64 / total as f64,
             0.7,
@@ -64,27 +87,28 @@ impl Extension<Generator> for Animation {
     }
 }
 
-#[derive(Debug)]
-pub struct Themes(Vec<Theme>);
+mod themes {
+    use super::Theme;
+    use crate::Generator;
+    use core::{item::Item, Extension};
 
-impl Extension<Generator> for Themes {
-    fn extend(&self, generator: &Generator, body: &mut Vec<Item>, style: &mut Vec<String>) {
-        self.0.iter().for_each(|t| t.extend(generator, body, style));
+    pub fn extend(
+        themes: &[Theme],
+        generator: &mut Generator,
+        body: &mut Vec<Item>,
+        style: &mut Vec<String>,
+    ) {
+        themes.iter().for_each(|t| t.extend(generator, body, style));
     }
 }
 
-impl From<Vec<Theme>> for Themes {
-    fn from(themes: Vec<Theme>) -> Self {
-        Themes(themes)
-    }
-}
+mod fonts {
+    use super::Font;
+    use crate::Generator;
+    use core::item::Item;
 
-#[derive(Debug)]
-pub struct Fonts(Vec<Font>);
-
-impl Extension<Generator> for Fonts {
-    fn extend(&self, _: &Generator, _: &mut Vec<Item>, style: &mut Vec<String>) {
-        let fonts = self.0.iter().map(|f| f.fetch());
+    pub fn extend(fonts: &[Font], _: &mut Generator, _: &mut Vec<Item>, style: &mut Vec<String>) {
+        let fonts = fonts.iter().map(|f| f.fetch());
         let fonts = futures::executor::block_on(futures::future::join_all(fonts));
         fonts.iter().for_each(|f| {
             let font = format!(
@@ -105,14 +129,20 @@ impl Extension<Generator> for Fonts {
     }
 }
 
-impl From<Vec<Font>> for Fonts {
-    fn from(fonts: Vec<Font>) -> Self {
-        Fonts(fonts)
+impl From<Vec<Theme>> for Extension {
+    fn from(themes: Vec<Theme>) -> Self {
+        Extension::Themes(themes)
     }
 }
 
-impl From<&[Font]> for Fonts {
+impl From<Vec<Font>> for Extension {
+    fn from(fonts: Vec<Font>) -> Self {
+        Extension::Fonts(fonts)
+    }
+}
+
+impl From<&[Font]> for Extension {
     fn from(fonts: &[Font]) -> Self {
-        Fonts(fonts.to_vec())
+        Extension::Fonts(fonts.to_vec())
     }
 }

@@ -1,7 +1,7 @@
 use core::item::Item;
 use core::{attribute, style};
 
-use super::{Config, Difficulty, Problem, UserInfo};
+use super::{Difficulty, Problem, UserInfo};
 
 const ICON_PATH: [&str; 3] = [
     "M67.506,83.066 C70.000,80.576 74.037,80.582 76.522,83.080 C79.008,85.578 79.002,89.622 76.508,92.112 L65.435,103.169 C55.219,113.370 38.560,113.518 28.172,103.513 C28.112,103.455 23.486,98.920 8.227,83.957 C-1.924,74.002 -2.936,58.074 6.616,47.846 L24.428,28.774 C33.910,18.621 51.387,17.512 62.227,26.278 L78.405,39.362 C81.144,41.577 81.572,45.598 79.361,48.342 C77.149,51.087 73.135,51.515 70.395,49.300 L54.218,36.217 C48.549,31.632 38.631,32.262 33.739,37.500 L15.927,56.572 C11.277,61.552 11.786,69.574 17.146,74.829 C28.351,85.816 36.987,94.284 36.997,94.294 C42.398,99.495 51.130,99.418 56.433,94.123 L67.506,83.066 Z",
@@ -9,12 +9,12 @@ const ICON_PATH: [&str; 3] = [
     "M40.606,72.001 C37.086,72.001 34.231,69.142 34.231,65.614 C34.231,62.087 37.086,59.228 40.606,59.228 L87.624,59.228 C91.145,59.228 94,62.087 94,65.614 C94,69.142 91.145,72.001 87.624,72.001 L40.606,72.001 Z"
 ];
 
-pub fn root(config: &Config, user_info: &UserInfo) -> Item {
+pub fn root(width: u32, height: u32, user_info: &UserInfo) -> Item {
     let attr = attribute!({
         "id": "root",
-        "width": format!("{}", config.width),
-        "height": format!("{}", config.height),
-        "viewBox": format!("0 0 {} {}", config.width, config.height),
+        "width": format!("{}", width),
+        "height": format!("{}", height),
+        "viewBox": format!("0 0 {} {}", width, height),
         "version": "1.1",
         "xmlns": "http://www.w3.org/2000/svg",
         "xmlns:xlink": "http://www.w3.org/1999/xlink"
@@ -27,8 +27,8 @@ pub fn root(config: &Config, user_info: &UserInfo) -> Item {
         "stroke": "var(--bg-2)",
         "fill": "var(--bg-0)",
         "stroke-width": 1,
-        "width": format!("{}px", config.width - 1),
-        "height": format!("{}px", config.height - 1),
+        "width": format!("{}px", width - 1),
+        "height": format!("{}px", height - 1),
         "rx": "4px",
     };
 
