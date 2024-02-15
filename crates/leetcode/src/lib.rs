@@ -43,13 +43,13 @@ impl Generator {
     fn hydrate(mut self) -> String {
         let mut ext_style = Vec::new();
         let mut ext_body = Vec::new();
-        let user_info = self.get_user_info();
 
         self.config.extensions.clone().iter().for_each(|ext| {
             ext.extend(&mut self, &mut ext_body, &mut ext_style);
         });
 
-        let mut root = item::root(self.config.width, self.config.height, &user_info);
+        let user_info = self.get_user_info();
+        let mut root = item::root(self.config.width, self.config.height, user_info);
         let (solved, total) = user_info.problems_stats();
 
         root.push_child(item::icon());
@@ -72,8 +72,8 @@ impl Generator {
         builder.stringify(&mut root)
     }
 
-    fn get_user_info(&self) -> UserInfo {
-        self.user_info.clone().unwrap()
+    fn get_user_info(&self) -> &UserInfo {
+        self.user_info.as_ref().unwrap()
     }
 }
 
