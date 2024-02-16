@@ -27,13 +27,7 @@ async fn main() {
     }
 
     // Download all Google Fonts and save them to `json/` directory
-    for font in GoogleApiResponse::fetch()
-        .await
-        .unwrap()
-        .items
-        .iter()
-        .take(2)
-    {
+    for font in GoogleApiResponse::fetch().await.unwrap().items {
         if let Ok(json_font) = font.try_into_json().await {
             let json = serde_json::to_string(&json_font).unwrap();
 
