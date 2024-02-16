@@ -1,10 +1,5 @@
 use core::Generator as GeneratorTrait;
-use leetcode::{
-    extension::Extension,
-    font::FORMULA_1,
-    theme::{DARK, FERRARI, LIGHT},
-    Config, Generator,
-};
+use leetcode::{extension::Extension, font::FORMULA_1, theme::FERRARI, Config, Generator};
 
 #[tokio::main]
 async fn main() {
