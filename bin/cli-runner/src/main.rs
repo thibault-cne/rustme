@@ -1,8 +1,8 @@
 use core::Generator as GeneratorTrait;
 use leetcode::{
     extension::Extension,
-    font::BALOO_2,
-    theme::{DARK, LIGHT},
+    font::FORMULA_1,
+    theme::{DARK, FERRARI, LIGHT},
     Config, Generator,
 };
 
@@ -10,11 +10,11 @@ use leetcode::{
 async fn main() {
     let mut config = Config::new("thibault-cne");
     let animation = Extension::Animation;
-    let themes = Extension::from(vec![DARK, LIGHT]);
-    let fonts = Extension::from(vec![BALOO_2]);
+    let themes = Extension::from(vec![FERRARI]);
+    let font = Extension::from(FORMULA_1);
     config.add_extension(animation);
     config.add_extension(themes);
-    config.add_extension(fonts);
+    config.add_extension(font);
 
     let generator = Generator::new(config);
 

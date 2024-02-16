@@ -1,6 +1,5 @@
-use core::{font::Font, item::Item, Extension as ExtensionTrait};
+use core::{font::Font, item::Item, theme::Theme, Extension as ExtensionTrait};
 
-pub use crate::theme::Theme;
 use crate::Generator;
 
 #[derive(Clone)]
@@ -8,7 +7,7 @@ pub enum Extension {
     Animation,
     Theme(Theme),
     Themes(Vec<Theme>),
-    Fonts(Vec<Font>),
+    Font(Font),
 }
 
 impl ExtensionTrait<Generator> for Extension {
@@ -21,8 +20,8 @@ impl ExtensionTrait<Generator> for Extension {
                 theme.extend(generator, items, style);
             }
             Extension::Themes(themes) => themes::extend(themes, generator, items, style),
-            Extension::Fonts(fonts) => {
-                fonts::extend(fonts, generator, items, style);
+            Extension::Font(font) => {
+                font::extend(font, generator, items, style);
             }
         }
     }
@@ -102,30 +101,22 @@ mod themes {
     }
 }
 
-mod fonts {
+mod font {
     use super::Font;
     use crate::Generator;
     use core::item::Item;
 
-    pub fn extend(fonts: &[Font], _: &mut Generator, _: &mut Vec<Item>, style: &mut Vec<String>) {
-        let fonts = fonts.iter().map(|f| f.fetch());
-        let fonts = futures::executor::block_on(futures::future::join_all(fonts));
-        fonts.iter().for_each(|f| {
-            let font = format!(
-                r##"@font-face{{font-family:"{}";src:url("{}") format("woff2")}}"##,
-                f.name, f.base64
-            );
-            style.push(font);
-        });
-        let body = fonts
-            .iter()
-            .map(|f| match f.name.as_str() {
-                "sans" | "serif" | "monospace" => f.name.clone(),
-                _ => format!(r#""{}""#, f.name),
-            })
-            .collect::<Vec<String>>()
-            .join(",");
-        style.push(format!("*{{font-family:{}}}", body));
+    pub fn extend(font: &Font, _: &mut Generator, _: &mut Vec<Item>, style: &mut Vec<String>) {
+        let font = futures::executor::block_on(font.fetch());
+        style.push(format!(
+            r##"@font-face{{font-family:"{}";src:url("{}") format("woff2")}}"##,
+            font.name, font.base64
+        ));
+        let font_family = match font.name.as_str() {
+            "sans" | "serif" | "monospace" => font.name.clone(),
+            _ => format!(r#""{}""#, font.name),
+        };
+        style.push(format!("*{{font-family:{}}}", font_family));
     }
 }
 
@@ -135,14 +126,14 @@ impl From<Vec<Theme>> for Extension {
     }
 }
 
-impl From<Vec<Font>> for Extension {
-    fn from(fonts: Vec<Font>) -> Self {
-        Extension::Fonts(fonts)
+impl From<Font> for Extension {
+    fn from(font: Font) -> Self {
+        Extension::Font(font)
     }
 }
 
-impl From<&[Font]> for Extension {
-    fn from(fonts: &[Font]) -> Self {
-        Extension::Fonts(fonts.to_vec())
+impl From<&Font> for Extension {
+    fn from(font: &Font) -> Self {
+        Extension::Font(*font)
     }
 }

@@ -5,7 +5,7 @@ pub enum Font {
 }
 
 impl Font {
-    const BASE_URL: &'static str = "https://cdn.jsdelivr.net/gh/JacobLinCool/nano-font@json/";
+    const BASE_URL: &'static str = "https://cdn.jsdelivr.net/gh/thibault-cne/rustme@json/";
 
     pub async fn fetch(&self) -> JsonFont {
         let url = format!("{}{}.json", Self::BASE_URL, self.filename());
