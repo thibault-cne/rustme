@@ -72,6 +72,8 @@ jobs:
 
       - name: Deploy
         run: cargo run --bin nano-fonts --release
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
       - name: Deploy Generated Font JSON
         uses: peaceiris/actions-gh-pages@v3

@@ -1,2 +1,5 @@
 /target
 /template
+
+# Env file
+.env
