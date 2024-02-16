@@ -4,9 +4,6 @@ use base64::Engine;
 
 #[tokio::main]
 async fn main() {
-    // Load env variables from `.env` file
-    dotenvy::dotenv().unwrap();
-
     // Check if `json/` directory exists
     if !std::path::Path::new("json").exists() {
         std::fs::create_dir("json").unwrap();
