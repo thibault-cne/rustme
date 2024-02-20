@@ -31,20 +31,36 @@ query UserInfo($id: String!) {
     }
 }"#;
 
-#[derive(Debug, Default)]
-pub struct Client {
-    init: bool,
-    csrf: String,
+#[derive(Debug)]
+pub struct Client<'a> {
+    client: reqwest::Client,
+    csrf: Option<String>,
     leetcode_session: String,
+    user_id: Id<'a>,
 }
 
-impl Client {
+impl<'a> Client<'a> {
+    pub fn new(user_id: Id<'a>) -> Client<'a> {
+        Client {
+            client: reqwest::Client::new(),
+            csrf: None,
+            leetcode_session: String::new(),
+            user_id,
+        }
+    }
+
     async fn init(&mut self) -> Result<(), ()> {
-        let resp = reqwest::Client::new()
-            .get("https://leetcode.com/")
+        crate::log! {"starting initialized"};
+
+        let resp = self
+            .client
+            .get("https://leetcode.com")
+            .header("User-Agent", "Mozilla/5.0 Rustme API")
             .send()
             .await
             .map_err(|_err| ())?;
+
+        crate::log! {"handshake ok"};
 
         if resp.headers().contains_key("set-cookie") {
             let cookies = parse_cookie(
@@ -55,47 +71,47 @@ impl Client {
                     .map_err(|_err| ())?,
             )?;
 
-            self.csrf = cookies.0.to_string();
-            self.init = true;
+            self.csrf = Some(cookies.0.to_string());
         }
 
+        crate::log! {"ending initialized"};
         Ok(())
     }
 
-    pub async fn get(&mut self, variables: Id<'_>) -> Result<UserInfo, ()> {
-        if !self.init {
+    pub async fn get(mut self) -> Result<UserInfo, ()> {
+        if self.csrf.is_none() {
             self.init().await?;
         }
 
         let body = RequestBody {
             query: QUERY,
-            variables,
+            variables: self.user_id,
         };
 
-        let req = reqwest::Client::new()
+        let req = self
+            .client
             .post("https://leetcode.com/graphql")
-            .json(&body)
+            .body(serde_json::to_vec(&body).unwrap())
             .header("Content-Type", "application/json")
             .header("User-Agent", "Mozilla/5.0 Rustme API")
-            .header("x-csrftoken", &self.csrf)
+            .header("x-csrftoken", self.csrf.as_ref().unwrap())
             .header("Referer", "https://leetcode.com")
             .header("Origin", "https://leetcode.com")
             .header(
                 "Cookie",
                 &format!(
                     "csrftoken={}; LEETCODE_SESSION={}",
-                    self.csrf, self.leetcode_session
+                    self.csrf.as_ref().unwrap(),
+                    self.leetcode_session
                 ),
             )
             .build()
             .map_err(|_err| ())?;
 
-        let res = reqwest::Client::new()
-            .execute(req)
-            .await
-            .map_err(|_err| ())?;
+        let res = self.client.execute(req).await.map_err(|_err| ())?;
+        let bytes = res.bytes().await.map_err(|_err| ())?;
 
-        match res.json::<GraphQLResponse>().await {
+        match serde_json::from_slice::<GraphQLResponse>(&bytes) {
             Ok(resp) => resp.try_into(),
             Err(_) => Err(()),
         }
@@ -110,7 +126,7 @@ fn parse_cookie(header: &str) -> Result<(&str, Option<&str>), ()> {
     Ok((cookie, None))
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Debug)]
 pub struct Id<'a> {
     id: &'a str,
 }

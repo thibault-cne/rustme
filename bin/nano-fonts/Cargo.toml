@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 serde.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["json"] }
 woff2.workspace = true
 base64.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "macros"] }
 serde_json.workspace = true

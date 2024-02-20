@@ -108,6 +108,12 @@ pub const FERRARI: Theme = Theme::new(
     "#L { fill: #ffffff }",
 );
 
+macros::impl_themes! {
+    "light" => LIGHT;
+    "dark" => DARK;
+    "ferrari" => FERRARI;
+}
+
 mod macros {
     macro_rules! variables {
         {$($name:literal: $value:literal),*} => {
@@ -115,5 +121,25 @@ mod macros {
         };
     }
 
+    macro_rules! impl_themes {
+        {$($name:literal => $theme:ident);*;} => {
+            impl From<&str> for Theme {
+                fn from(s: &str) -> Theme {
+                    match s {
+                        $($name => $theme,)*
+                        _ => LIGHT,
+                    }
+                }
+            }
+
+            impl From<String> for Theme {
+                fn from(s: String) -> Theme {
+                    s.as_str().into()
+                }
+            }
+        };
+}
+
+    pub(super) use impl_themes;
     pub(super) use variables;
 }

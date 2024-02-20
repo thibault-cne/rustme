@@ -3,13 +3,14 @@ use leetcode::{extension::Extension, font::FORMULA_1, theme::FERRARI, Config, Ge
 
 #[tokio::main]
 async fn main() {
-    let mut config = Config::new("thibault-cne");
+    let config = Config::new("thibault-cne");
     let animation = Extension::Animation;
     let themes = Extension::from(vec![FERRARI]);
     let font = Extension::from(FORMULA_1);
-    config.add_extension(animation);
-    config.add_extension(themes);
-    config.add_extension(font);
+    let config = config
+        .add_extension(animation)
+        .add_extension(themes)
+        .add_extension(font);
 
     let generator = Generator::new(config);
 

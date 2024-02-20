@@ -1,0 +1,18 @@
+name = "rustme"
+workers_dev = true
+main = "crates/workers/build/worker/shim.mjs"
+compatibility_date = "2023-03-22"
+
+[vars]
+WORKERS_RS_VERSION = "0.0.18"
+
+[build]
+command = "cargo run --bin worker-build --release crates/workers --features wee_alloc" # required
+
+[[rules]]
+globs = ["**/*.wasm"]
+type = "CompiledWasm"
+fallthrough = true
+
+# read more about configuring your Worker via wrangler.toml at:
+# https://developers.cloudflare.com/workers/cli-wrangler/configuration

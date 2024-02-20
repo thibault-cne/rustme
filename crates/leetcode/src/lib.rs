@@ -1,7 +1,9 @@
 #![allow(dead_code)]
 
 use core::{
+    font::Font,
     item::{Item, ItemBuilder},
+    theme::Theme,
     Extension, Generator as GeneratorTrait,
 };
 
@@ -21,13 +23,13 @@ pub struct Generator {
 impl GeneratorTrait for Generator {
     async fn generate(mut self) -> String {
         let user_id = graphql::Id::new(&self.config.username);
-        let user_info = graphql::Client::default()
-            .get(user_id)
-            .await
-            .unwrap_or_default();
+        log! {self => "awaiting user_info of: {:?}", self.config.username};
+        let client = graphql::Client::new(user_id);
+        let user_info = client.get().await.unwrap_or_default();
         self.user_info = Some(user_info);
+        log! {self => "received user_info: {:?}", self.user_info};
 
-        self.hydrate()
+        self.hydrate().await
     }
 }
 
@@ -40,13 +42,27 @@ impl Generator {
         }
     }
 
-    fn hydrate(mut self) -> String {
+    async fn hydrate(mut self) -> String {
+        log! {self => "starting hydration..."};
         let mut ext_style = Vec::new();
         let mut ext_body = Vec::new();
 
-        self.config.extensions.clone().iter().for_each(|ext| {
-            ext.extend(&mut self, &mut ext_body, &mut ext_style);
-        });
+        let mut extensions = self.config.extensions.clone();
+        extensions.extend(
+            self.config
+                .themes
+                .clone()
+                .into_iter()
+                .map(|theme| theme.into()),
+        );
+        extensions.push(self.config.font.into());
+        log! {self => "starting extending extensions"};
+        for ext in self.config.extensions.clone().iter() {
+            ext.extend(&mut self, &mut ext_body, &mut ext_style).await;
+        }
+        log! {self => "ending extending extensions"};
+
+        log! {self => "starting building DOM"};
 
         let user_info = self.get_user_info();
         let mut root = item::root(self.config.width, self.config.height, user_info);
@@ -69,7 +85,22 @@ impl Generator {
 
         root.push_child(Item::style(style.join("")));
 
+        log! {self => "ending building DOM"};
+        log! {self => "ending hydration..."};
+
         builder.stringify(&mut root)
+    }
+
+    pub fn verbose(&mut self) {
+        self.verbose = true;
+    }
+
+    pub fn non_verbose(&mut self) {
+        self.verbose = false;
+    }
+
+    pub fn is_verbose(&self) -> bool {
+        self.verbose
     }
 
     fn get_user_info(&self) -> &UserInfo {
@@ -77,11 +108,13 @@ impl Generator {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Config {
     username: String,
     width: u32,
     height: u32,
+    themes: [Theme; 2],
+    font: Font,
     extensions: Vec<extension::Extension>,
 }
 
@@ -93,8 +126,46 @@ impl Config {
         }
     }
 
-    pub fn add_extension(&mut self, ext: extension::Extension) {
-        self.extensions.push(ext);
+    pub fn set_width(mut self, width: u32) -> Self {
+        self.width = width;
+        self
+    }
+
+    pub fn set_height(mut self, height: u32) -> Self {
+        self.height = height;
+        self
+    }
+
+    pub fn set_username(mut self, username: &str) -> Self {
+        self.username = username.to_string();
+        self
+    }
+
+    pub fn as_username(&self) -> bool {
+        !self.username.is_empty()
+    }
+
+    pub fn set_font(mut self, font: Font) -> Self {
+        self.font = font;
+        self
+    }
+
+    pub fn set_dark_theme(mut self, mut theme: Theme) -> Self {
+        theme.set_dark();
+        self.themes[1] = theme;
+        self
+    }
+
+    pub fn set_light_theme(mut self, mut theme: Theme) -> Self {
+        theme.set_light();
+        self.themes[0] = theme;
+        self
+    }
+
+    pub fn add_extension(self, ext: extension::Extension) -> Self {
+        let mut config = self;
+        config.extensions.push(ext);
+        config
     }
 }
 
@@ -104,6 +175,8 @@ impl Default for Config {
             width: 500,
             height: 200,
             username: String::from("thibaultcne"),
+            themes: [core::theme::LIGHT, core::theme::DARK],
+            font: font::BALOO_2,
             extensions: Vec::new(),
         }
     }
@@ -216,5 +289,19 @@ impl std::fmt::Display for Difficulty {
             Self::Hard => "hard",
         };
         write!(f, "{}", value)
+    }
+}
+
+mod macros {
+    #[macro_export]
+    macro_rules! log {
+        { $gen:ident => $($tt:tt)* } => {
+            if $gen.is_verbose() {
+                worker::console_log!($($tt)*);
+            }
+        };
+        { $($tt:tt)* } => {
+            worker::console_log!($($tt)*);
+        };
     }
 }

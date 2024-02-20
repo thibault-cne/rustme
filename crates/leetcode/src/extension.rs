@@ -2,7 +2,7 @@ use core::{font::Font, item::Item, theme::Theme, Extension as ExtensionTrait};
 
 use crate::Generator;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Extension {
     Animation,
     Theme(Theme),
@@ -11,17 +11,22 @@ pub enum Extension {
 }
 
 impl ExtensionTrait<Generator> for Extension {
-    fn extend(&self, generator: &mut Generator, items: &mut Vec<Item>, style: &mut Vec<String>) {
+    async fn extend(
+        &self,
+        generator: &mut Generator,
+        items: &mut Vec<Item>,
+        style: &mut Vec<String>,
+    ) {
         match self {
             Extension::Animation => {
                 animation::extend(generator, items, style);
             }
             Extension::Theme(theme) => {
-                theme.extend(generator, items, style);
+                theme.extend(generator, items, style).await;
             }
-            Extension::Themes(themes) => themes::extend(themes, generator, items, style),
+            Extension::Themes(themes) => themes::extend(themes, generator, items, style).await,
             Extension::Font(font) => {
-                font::extend(font, generator, items, style);
+                font::extend(font, generator, items, style).await;
             }
         }
     }
@@ -91,13 +96,15 @@ mod themes {
     use crate::Generator;
     use core::{item::Item, Extension};
 
-    pub fn extend(
+    pub async fn extend(
         themes: &[Theme],
         generator: &mut Generator,
         body: &mut Vec<Item>,
         style: &mut Vec<String>,
     ) {
-        themes.iter().for_each(|t| t.extend(generator, body, style));
+        for theme in themes {
+            theme.extend(generator, body, style).await;
+        }
     }
 }
 
@@ -106,8 +113,13 @@ mod font {
     use crate::Generator;
     use core::item::Item;
 
-    pub fn extend(font: &Font, _: &mut Generator, _: &mut Vec<Item>, style: &mut Vec<String>) {
-        let font = futures::executor::block_on(font.fetch());
+    pub async fn extend(
+        font: &Font,
+        _: &mut Generator,
+        _: &mut Vec<Item>,
+        style: &mut Vec<String>,
+    ) {
+        let font = font.fetch().await;
         style.push(format!(
             r##"@font-face{{font-family:"{}";src:url("{}") format("woff2")}}"##,
             font.name, font.base64
@@ -117,6 +129,12 @@ mod font {
             _ => format!(r#""{}""#, font.name),
         };
         style.push(format!("*{{font-family:{}}}", font_family));
+    }
+}
+
+impl From<Theme> for Extension {
+    fn from(theme: Theme) -> Self {
+        Extension::Theme(theme)
     }
 }
 

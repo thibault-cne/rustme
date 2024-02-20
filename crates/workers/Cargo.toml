@@ -1,0 +1,17 @@
+[package]
+name = "workers"
+version = "0.1.0"
+edition = "2018"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+leetcode.workspace = true
+core.workspace = true
+
+worker.workspace = true
+wee_alloc = { workspace = true, optional = true }

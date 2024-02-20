@@ -3,16 +3,19 @@ pub mod item;
 pub mod macros;
 pub mod theme;
 
-use std::future::Future;
-
 use item::Item;
 
-pub trait Generator: Default + Send {
-    fn generate(self) -> impl Future<Output = String> + Send;
+pub trait Generator: Default + Send + Sync {
+    fn generate(self) -> impl std::future::Future<Output = String>;
 }
 
-pub trait Extension<G: Generator>: Send {
-    fn extend(&self, generator: &mut G, body: &mut Vec<Item>, style: &mut Vec<String>);
+pub trait Extension<G: Generator>: Send + Sync {
+    fn extend(
+        &self,
+        generator: &mut G,
+        body: &mut Vec<Item>,
+        style: &mut Vec<String>,
+    ) -> impl std::future::Future<Output = ()>;
 }
 
 pub fn minimize_css(css: &str) -> String {
