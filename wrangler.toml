@@ -7,7 +7,7 @@ compatibility_date = "2023-03-22"
 WORKERS_RS_VERSION = "0.0.18"
 
 [build]
-command = "cargo run --bin worker-build --release crates/workers --features wee_alloc" # required
+command = "cargo run --bin worker-build --release crates/workers --features wee_alloc,leetcode/worker" # required
 
 [[rules]]
 globs = ["**/*.wasm"]

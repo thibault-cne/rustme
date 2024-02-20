@@ -1,20 +1,16 @@
 use core::Generator as GeneratorTrait;
-use leetcode::{extension::Extension, font::FORMULA_1, theme::FERRARI, Config, Generator};
+use leetcode::{extension::Extension, Config, Generator};
 
 #[tokio::main]
 async fn main() {
     let config = Config::new("thibault-cne");
     let animation = Extension::Animation;
-    let themes = Extension::from(vec![FERRARI]);
-    let font = Extension::from(FORMULA_1);
-    let config = config
-        .add_extension(animation)
-        .add_extension(themes)
-        .add_extension(font);
+    let config = config.add_extension(animation);
 
-    let generator = Generator::new(config);
+    let mut generator = Generator::new(config);
+    generator.verbose();
 
-    let content = generator.generate().await;
+    let content = generator.generate().await.unwrap();
 
     println!("{}", content);
 }

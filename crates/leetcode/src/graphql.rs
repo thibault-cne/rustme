@@ -37,6 +37,7 @@ pub struct Client<'a> {
     csrf: Option<String>,
     leetcode_session: String,
     user_id: Id<'a>,
+    verbose: bool,
 }
 
 impl<'a> Client<'a> {
@@ -46,39 +47,37 @@ impl<'a> Client<'a> {
             csrf: None,
             leetcode_session: String::new(),
             user_id,
+            verbose: false,
         }
     }
 
-    async fn init(&mut self) -> Result<(), ()> {
-        crate::log! {"starting initialized"};
+    pub fn set_verbose(mut self, verbose: bool) -> Self {
+        self.verbose = verbose;
+        self
+    }
+
+    async fn init(&mut self) -> error::Result<()> {
+        crate::log! { self.verbose => "starting initialized" };
 
         let resp = self
             .client
             .get("https://leetcode.com")
             .header("User-Agent", "Mozilla/5.0 Rustme API")
             .send()
-            .await
-            .map_err(|_err| ())?;
+            .await?;
 
-        crate::log! {"handshake ok"};
+        crate::log! { self.verbose => "handshake ok" };
 
-        if resp.headers().contains_key("set-cookie") {
-            let cookies = parse_cookie(
-                resp.headers()
-                    .get("set-cookie")
-                    .unwrap()
-                    .to_str()
-                    .map_err(|_err| ())?,
-            )?;
-
-            self.csrf = Some(cookies.0.to_string());
+        if let Some(cookie) = resp.headers().get("set-cookie") {
+            let cookie = parse_cookie(cookie.to_str()?)?;
+            self.csrf = Some(cookie.0.to_string());
         }
 
-        crate::log! {"ending initialized"};
+        crate::log! { self.verbose => "ending initialized" };
         Ok(())
     }
 
-    pub async fn get(mut self) -> Result<UserInfo, ()> {
+    pub async fn get(mut self) -> error::Result<UserInfo> {
         if self.csrf.is_none() {
             self.init().await?;
         }
@@ -105,20 +104,19 @@ impl<'a> Client<'a> {
                     self.leetcode_session
                 ),
             )
-            .build()
-            .map_err(|_err| ())?;
+            .build()?;
 
-        let res = self.client.execute(req).await.map_err(|_err| ())?;
-        let bytes = res.bytes().await.map_err(|_err| ())?;
+        let res = self.client.execute(req).await?;
+        let bytes = res.bytes().await?;
 
         match serde_json::from_slice::<GraphQLResponse>(&bytes) {
             Ok(resp) => resp.try_into(),
-            Err(_) => Err(()),
+            Err(e) => Err(e.into()),
         }
     }
 }
 
-fn parse_cookie(header: &str) -> Result<(&str, Option<&str>), ()> {
+fn parse_cookie(header: &str) -> error::Result<(&str, Option<&str>)> {
     let mut parts = header.split(';');
 
     let cookie = parts.next().ok_or(())?.split('=').last().ok_or(())?;
@@ -150,7 +148,7 @@ struct GraphQLResponse {
 }
 
 impl TryInto<UserInfo> for GraphQLResponse {
-    type Error = ();
+    type Error = error::Error;
 
     fn try_into(self) -> Result<UserInfo, Self::Error> {
         self.data.try_into()
@@ -165,7 +163,7 @@ struct Data {
 }
 
 impl TryInto<UserInfo> for Data {
-    type Error = ();
+    type Error = error::Error;
 
     fn try_into(self) -> Result<UserInfo, Self::Error> {
         Ok(UserInfo {
@@ -185,7 +183,7 @@ impl TryInto<UserInfo> for Data {
                             .unwrap(),
                     )
                 })
-                .collect::<Result<Vec<super::Problem>, ()>>()?,
+                .collect::<error::Result<Vec<super::Problem>>>()?,
         })
     }
 }
@@ -237,7 +235,7 @@ struct Submission {
 }
 
 impl Submission {
-    fn try_into_problem(&self, problem_data: &ProblemData) -> Result<super::Problem, ()> {
+    fn try_into_problem(&self, problem_data: &ProblemData) -> error::Result<super::Problem> {
         Ok(super::Problem {
             difficulty: super::Difficulty::try_from(self.difficulty.as_str())?,
             count: self.count,

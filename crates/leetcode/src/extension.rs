@@ -16,18 +16,12 @@ impl ExtensionTrait<Generator> for Extension {
         generator: &mut Generator,
         items: &mut Vec<Item>,
         style: &mut Vec<String>,
-    ) {
+    ) -> error::Result<()> {
         match self {
-            Extension::Animation => {
-                animation::extend(generator, items, style);
-            }
-            Extension::Theme(theme) => {
-                theme.extend(generator, items, style).await;
-            }
+            Extension::Animation => animation::extend(generator, items, style),
+            Extension::Theme(theme) => theme.extend(generator, items, style).await,
             Extension::Themes(themes) => themes::extend(themes, generator, items, style).await,
-            Extension::Font(font) => {
-                font::extend(font, generator, items, style).await;
-            }
+            Extension::Font(font) => font::extend(font, generator, items, style).await,
         }
     }
 }
@@ -67,7 +61,11 @@ mod animation {
         format!("{}{}", animation, style)
     }
 
-    pub fn extend(generator: &mut Generator, _: &mut Vec<Item>, style: &mut Vec<String>) {
+    pub fn extend(
+        generator: &mut Generator,
+        _: &mut Vec<Item>,
+        style: &mut Vec<String>,
+    ) -> error::Result<()> {
         let mut css = KEYFRAME.to_string();
         let speed = 1_f32;
 
@@ -88,6 +86,7 @@ mod animation {
         ));
 
         style.push(css);
+        Ok(())
     }
 }
 
@@ -101,10 +100,11 @@ mod themes {
         generator: &mut Generator,
         body: &mut Vec<Item>,
         style: &mut Vec<String>,
-    ) {
+    ) -> error::Result<()> {
         for theme in themes {
-            theme.extend(generator, body, style).await;
+            theme.extend(generator, body, style).await?;
         }
+        Ok(())
     }
 }
 
@@ -118,8 +118,8 @@ mod font {
         _: &mut Generator,
         _: &mut Vec<Item>,
         style: &mut Vec<String>,
-    ) {
-        let font = font.fetch().await;
+    ) -> error::Result<()> {
+        let font = font.fetch().await?;
         style.push(format!(
             r##"@font-face{{font-family:"{}";src:url("{}") format("woff2")}}"##,
             font.name, font.base64
@@ -129,6 +129,7 @@ mod font {
             _ => format!(r#""{}""#, font.name),
         };
         style.push(format!("*{{font-family:{}}}", font_family));
+        Ok(())
     }
 }
 

@@ -9,7 +9,7 @@ impl Extension<Generator> for Theme {
         _: &mut Generator,
         _: &mut Vec<core::item::Item>,
         style: &mut Vec<String>,
-    ) {
+    ) -> error::Result<()> {
         let vars = self.format_vars();
         let (start, end) =
             if self.prefered_color_scheme == "dark" || self.prefered_color_scheme == "light" {
@@ -31,6 +31,7 @@ impl Extension<Generator> for Theme {
         theme.push_str(self.style);
         theme.push(end);
         style.push(minimize_css(&theme).to_string());
+        Ok(())
     }
 }
 

@@ -21,13 +21,15 @@ pub struct Generator {
 }
 
 impl GeneratorTrait for Generator {
-    async fn generate(mut self) -> String {
+    async fn generate(mut self) -> error::Result<String> {
+        log! { self.verbose => "starting generation with config: {:?}", self.config };
+
         let user_id = graphql::Id::new(&self.config.username);
-        log! {self => "awaiting user_info of: {:?}", self.config.username};
-        let client = graphql::Client::new(user_id);
+        log! { self.verbose => "awaiting user_info of: {:?}", self.config.username };
+        let client = graphql::Client::new(user_id).set_verbose(self.verbose);
         let user_info = client.get().await.unwrap_or_default();
         self.user_info = Some(user_info);
-        log! {self => "received user_info: {:?}", self.user_info};
+        log! { self.verbose => "received user_info: {:?}", self.user_info };
 
         self.hydrate().await
     }
@@ -42,8 +44,8 @@ impl Generator {
         }
     }
 
-    async fn hydrate(mut self) -> String {
-        log! {self => "starting hydration..."};
+    async fn hydrate(mut self) -> error::Result<String> {
+        log! {self.verbose => "starting hydration..."};
         let mut ext_style = Vec::new();
         let mut ext_body = Vec::new();
 
@@ -53,16 +55,17 @@ impl Generator {
                 .themes
                 .clone()
                 .into_iter()
+                .flatten()
                 .map(|theme| theme.into()),
         );
         extensions.push(self.config.font.into());
-        log! {self => "starting extending extensions"};
-        for ext in self.config.extensions.clone().iter() {
-            ext.extend(&mut self, &mut ext_body, &mut ext_style).await;
+        log! {self.verbose => "starting extending extensions"};
+        for ext in extensions {
+            ext.extend(&mut self, &mut ext_body, &mut ext_style).await?;
         }
-        log! {self => "ending extending extensions"};
+        log! {self.verbose => "ending extending extensions"};
 
-        log! {self => "starting building DOM"};
+        log! {self.verbose => "starting building DOM"};
 
         let user_info = self.get_user_info();
         let mut root = item::root(self.config.width, self.config.height, user_info);
@@ -85,10 +88,10 @@ impl Generator {
 
         root.push_child(Item::style(style.join("")));
 
-        log! {self => "ending building DOM"};
-        log! {self => "ending hydration..."};
+        log! {self.verbose => "ending building DOM"};
+        log! {self.verbose => "ending hydration..."};
 
-        builder.stringify(&mut root)
+        Ok(builder.stringify(&mut root))
     }
 
     pub fn verbose(&mut self) {
@@ -113,7 +116,7 @@ pub struct Config {
     username: String,
     width: u32,
     height: u32,
-    themes: [Theme; 2],
+    themes: [Option<Theme>; 2],
     font: Font,
     extensions: Vec<extension::Extension>,
 }
@@ -152,13 +155,18 @@ impl Config {
 
     pub fn set_dark_theme(mut self, mut theme: Theme) -> Self {
         theme.set_dark();
-        self.themes[1] = theme;
+        self.themes[1] = Some(theme);
         self
     }
 
     pub fn set_light_theme(mut self, mut theme: Theme) -> Self {
         theme.set_light();
-        self.themes[0] = theme;
+        self.themes[0] = Some(theme);
+        self
+    }
+
+    pub fn set_single_theme(mut self, theme: Theme) -> Self {
+        self.themes = [Some(theme), None];
         self
     }
 
@@ -175,7 +183,7 @@ impl Default for Config {
             width: 500,
             height: 200,
             username: String::from("thibaultcne"),
-            themes: [core::theme::LIGHT, core::theme::DARK],
+            themes: [Some(core::theme::LIGHT), Some(core::theme::DARK)],
             font: font::BALOO_2,
             extensions: Vec::new(),
         }
@@ -267,7 +275,7 @@ impl Difficulty {
 }
 
 impl TryFrom<&str> for Difficulty {
-    type Error = ();
+    type Error = error::Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
@@ -275,7 +283,7 @@ impl TryFrom<&str> for Difficulty {
             "Easy" => Ok(Self::Easy),
             "Medium" => Ok(Self::Medium),
             "Hard" => Ok(Self::Hard),
-            _ => Err(()),
+            _ => Err(error::Error::new_invalid_difficulty_kind()),
         }
     }
 }
@@ -295,13 +303,15 @@ impl std::fmt::Display for Difficulty {
 mod macros {
     #[macro_export]
     macro_rules! log {
-        { $gen:ident => $($tt:tt)* } => {
-            if $gen.is_verbose() {
+        { $verbose:expr => $($tt:tt)* } => {
+            #[cfg(feature = "worker")]
+            if $verbose {
                 worker::console_log!($($tt)*);
             }
-        };
-        { $($tt:tt)* } => {
-            worker::console_log!($($tt)*);
+            #[cfg(not(feature = "worker"))]
+            if $verbose {
+                println!($($tt)*);
+            }
         };
     }
 }

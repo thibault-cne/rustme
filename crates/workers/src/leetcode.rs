@@ -24,28 +24,31 @@ pub async fn leetcode_handler(req: Request, _: RouteContext<()>) -> Result<Respo
 
     let mut generator = leetcode::Generator::new(config);
     generator.verbose();
-    let html = generator.generate().await;
-
-    Response::from_html(html)
+    match generator.generate().await {
+        Ok(html) => Response::from_html(html),
+        Err(e) => Response::error(e.to_string(), 500),
+    }
 }
 
 fn parse_query(query: &Url) -> Vec<QueryParams> {
     query
         .query_pairs()
-        .map(|(key, value)| {
+        .flat_map(|(key, value)| {
             let key = key.to_ascii_lowercase();
 
             match key.as_str() {
-                "username" => QueryParams::Username(value.to_string()),
-                "width" => QueryParams::Width(value.parse().unwrap()),
-                "height" => QueryParams::Height(value.parse().unwrap()),
-                "font" => QueryParams::Font(value.to_string().into()),
+                "username" => Some(QueryParams::Username(value.to_string())),
+                "width" => Some(QueryParams::Width(value.parse().unwrap())),
+                "height" => Some(QueryParams::Height(value.parse().unwrap())),
+                "font" => Some(QueryParams::Font(value.to_string().into())),
                 "theme" => {
                     let themes = value.split(',').map(Theme::from).take(2).collect();
-                    QueryParams::Themes(themes)
+                    Some(QueryParams::Themes(themes))
                 }
-                "ext" => QueryParams::Extension(value.to_string()),
-                _ => panic!("Invalid query parameter"),
+                "animation" if value.parse::<bool>().is_ok_and(|b| b) => {
+                    Some(QueryParams::Extension("animation".to_string()))
+                }
+                _ => None,
             }
         })
         .collect()
@@ -62,7 +65,7 @@ fn config_from_url(query: &Url) -> Option<Config> {
             QueryParams::Height(height) => config.set_height(height),
             QueryParams::Font(font) => config.set_font(font),
             QueryParams::Themes(themes) if themes.len() == 1 => {
-                config.add_extension(themes.into_iter().next().unwrap().into())
+                config.set_single_theme(themes.into_iter().next().unwrap())
             }
             QueryParams::Themes(themes) => {
                 let mut themes = themes.into_iter();

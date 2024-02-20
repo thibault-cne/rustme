@@ -16,8 +16,8 @@ impl Extension<super::Generator> for core::font::Font {
         _: &mut super::Generator,
         _: &mut Vec<core::item::Item>,
         style: &mut Vec<String>,
-    ) {
-        let font = self.fetch().await;
+    ) -> error::Result<()> {
+        let font = self.fetch().await?;
         style.push(format!(
             r##"@font-face{{font-family:"{}";src:url("{}") format("woff2")}}"##,
             font.name, font.base64
@@ -27,5 +27,6 @@ impl Extension<super::Generator> for core::font::Font {
             _ => format!(r#""{}""#, font.name),
         };
         style.push(format!("*{{font-family:{}}}", font_family));
+        Ok(())
     }
 }

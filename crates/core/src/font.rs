@@ -7,12 +7,12 @@ pub enum Font {
 impl Font {
     const BASE_URL: &'static str = "https://cdn.jsdelivr.net/gh/thibault-cne/rustme@json/";
 
-    pub async fn fetch(&self) -> JsonFont {
+    pub async fn fetch(&self) -> error::Result<JsonFont> {
         let url = format!("{}{}.json", Self::BASE_URL, self.filename());
 
-        let resp = reqwest::get(url).await.unwrap();
-        let bytes = resp.bytes().await.unwrap();
-        serde_json::from_slice(&bytes).unwrap()
+        let resp = reqwest::get(url).await?;
+        let bytes = resp.bytes().await?;
+        serde_json::from_slice(&bytes).map_err(Into::into)
     }
 }
 

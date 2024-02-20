@@ -6,7 +6,7 @@ pub mod theme;
 use item::Item;
 
 pub trait Generator: Default + Send + Sync {
-    fn generate(self) -> impl std::future::Future<Output = String>;
+    fn generate(self) -> impl std::future::Future<Output = error::Result<String>>;
 }
 
 pub trait Extension<G: Generator>: Send + Sync {
@@ -15,7 +15,7 @@ pub trait Extension<G: Generator>: Send + Sync {
         generator: &mut G,
         body: &mut Vec<Item>,
         style: &mut Vec<String>,
-    ) -> impl std::future::Future<Output = ()>;
+    ) -> impl std::future::Future<Output = error::Result<()>>;
 }
 
 pub fn minimize_css(css: &str) -> String {
