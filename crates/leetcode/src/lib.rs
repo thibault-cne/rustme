@@ -49,18 +49,8 @@ impl Generator {
         let mut ext_style = Vec::new();
         let mut ext_body = Vec::new();
 
-        let mut extensions = self.config.extensions.clone();
-        extensions.extend(
-            self.config
-                .themes
-                .clone()
-                .into_iter()
-                .flatten()
-                .map(|theme| theme.into()),
-        );
-        extensions.push(self.config.font.into());
         log! {self.verbose => "starting extending extensions"};
-        for ext in extensions {
+        for ext in self.config.get_extensions() {
             ext.extend(&mut self, &mut ext_body, &mut ext_style).await?;
         }
         log! {self.verbose => "ending extending extensions"};
@@ -118,6 +108,7 @@ pub struct Config {
     height: u32,
     themes: [Option<Theme>; 2],
     font: Font,
+    animation: bool,
     extensions: Vec<extension::Extension>,
 }
 
@@ -153,6 +144,11 @@ impl Config {
         self
     }
 
+    pub fn set_animation(mut self, animation: bool) -> Self {
+        self.animation = animation;
+        self
+    }
+
     pub fn set_dark_theme(mut self, mut theme: Theme) -> Self {
         theme.set_dark();
         self.themes[1] = Some(theme);
@@ -175,6 +171,23 @@ impl Config {
         config.extensions.push(ext);
         config
     }
+
+    fn get_extensions(&self) -> Vec<extension::Extension> {
+        let mut extensions = self.extensions.clone();
+        extensions.extend(
+            self.themes
+                .clone()
+                .into_iter()
+                .flatten()
+                .map(|theme| theme.into()),
+        );
+        extensions.push(self.font.into());
+        if self.animation {
+            extensions.push(extension::Extension::Animation);
+        }
+
+        extensions
+    }
 }
 
 impl Default for Config {
@@ -182,6 +195,7 @@ impl Default for Config {
         Config {
             width: 500,
             height: 200,
+            animation: true,
             username: String::from("thibaultcne"),
             themes: [Some(core::theme::LIGHT), Some(core::theme::DARK)],
             font: font::BALOO_2,

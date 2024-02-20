@@ -14,6 +14,7 @@ pub enum QueryParams {
     Font(Font),
     Themes(Vec<Theme>),
     Extension(String),
+    Animation(bool),
 }
 
 pub async fn leetcode_handler(req: Request, _: RouteContext<()>) -> Result<Response> {
@@ -45,9 +46,8 @@ fn parse_query(query: &Url) -> Vec<QueryParams> {
                     let themes = value.split(',').map(Theme::from).take(2).collect();
                     Some(QueryParams::Themes(themes))
                 }
-                "animation" if value.parse::<bool>().is_ok_and(|b| b) => {
-                    Some(QueryParams::Extension("animation".to_string()))
-                }
+                "animation" => value.parse::<bool>().ok().map(QueryParams::Animation),
+                "ext" => Some(QueryParams::Extension(value.to_string())),
                 _ => None,
             }
         })
@@ -73,6 +73,7 @@ fn config_from_url(query: &Url) -> Option<Config> {
                     .set_light_theme(themes.next().unwrap())
                     .set_dark_theme(themes.next().unwrap())
             }
+            QueryParams::Animation(animation) => config.set_animation(animation),
             QueryParams::Extension(ext) => {
                 if let Some(ext) = extension(&ext) {
                     config.add_extension(ext)
@@ -89,9 +90,6 @@ fn config_from_url(query: &Url) -> Option<Config> {
     }
 }
 
-fn extension(ext: &str) -> Option<Extension> {
-    match ext {
-        "animation" => Some(Extension::Animation),
-        _ => None,
-    }
+fn extension(_ext: &str) -> Option<Extension> {
+    None
 }
