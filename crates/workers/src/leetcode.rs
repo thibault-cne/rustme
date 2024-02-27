@@ -17,7 +17,14 @@ pub enum QueryParams {
     Animation(bool),
 }
 
-pub async fn leetcode_handler(req: Request, _: RouteContext<()>) -> Result<Response> {
+pub async fn leetcode_handler(
+    req: Request,
+    mut ctx: RouteContext<super::Caches>,
+) -> Result<Response> {
+    if let Some(resp) = ctx.data.leetcode().get(&req, false).await? {
+        return Ok(resp);
+    }
+
     let config = match crate::leetcode::config_from_url(&req.url().unwrap()) {
         Some(config) => config,
         None => return Response::error("Invalid query parameters", 400),
@@ -25,10 +32,19 @@ pub async fn leetcode_handler(req: Request, _: RouteContext<()>) -> Result<Respo
 
     let mut generator = leetcode::Generator::new(config);
     generator.verbose();
-    match generator.generate().await {
-        Ok(html) => Response::from_html(html),
-        Err(e) => Response::error(e.to_string(), 500),
-    }
+    let mut resp = match generator.generate().await {
+        Ok(html) => Response::from_html(html)?,
+        Err(e) => Response::error(e.to_string(), 500)?,
+    };
+
+    resp.headers_mut()
+        .set("Cache-Control", "public, max-age=3600")?;
+    ctx.data.leetcode().put(&req, resp).await?;
+    ctx.data
+        .leetcode()
+        .get(&req, false)
+        .await
+        .map(|r| r.unwrap())
 }
 
 fn parse_query(query: &Url) -> Vec<QueryParams> {

@@ -1,3 +1,4 @@
+use core::error::Result;
 use serde::Serialize;
 
 use super::UserInfo;
@@ -56,7 +57,7 @@ impl<'a> Client<'a> {
         self
     }
 
-    async fn init(&mut self) -> error::Result<()> {
+    async fn init(&mut self) -> Result<()> {
         crate::log! { self.verbose => "starting initialized" };
 
         let resp = self
@@ -77,7 +78,7 @@ impl<'a> Client<'a> {
         Ok(())
     }
 
-    pub async fn get(mut self) -> error::Result<UserInfo> {
+    pub async fn get(mut self) -> Result<UserInfo> {
         if self.csrf.is_none() {
             self.init().await?;
         }
@@ -106,8 +107,9 @@ impl<'a> Client<'a> {
             )
             .build()?;
 
-        let res = self.client.execute(req).await?;
-        let bytes = res.bytes().await?;
+        crate::log! { self.verbose => "requesting and reading bytes..." };
+        let bytes = self.client.execute(req).await?.bytes().await?;
+        crate::log! { self.verbose => "bytes read" };
 
         match serde_json::from_slice::<GraphQLResponse>(&bytes) {
             Ok(resp) => resp.try_into(),
@@ -116,7 +118,7 @@ impl<'a> Client<'a> {
     }
 }
 
-fn parse_cookie(header: &str) -> error::Result<(&str, Option<&str>)> {
+fn parse_cookie(header: &str) -> Result<(&str, Option<&str>)> {
     let mut parts = header.split(';');
 
     let cookie = parts.next().ok_or(())?.split('=').last().ok_or(())?;
@@ -148,9 +150,9 @@ struct GraphQLResponse {
 }
 
 impl TryInto<UserInfo> for GraphQLResponse {
-    type Error = error::Error;
+    type Error = core::error::Error;
 
-    fn try_into(self) -> Result<UserInfo, Self::Error> {
+    fn try_into(self) -> std::result::Result<UserInfo, Self::Error> {
         self.data.try_into()
     }
 }
@@ -163,9 +165,9 @@ struct Data {
 }
 
 impl TryInto<UserInfo> for Data {
-    type Error = error::Error;
+    type Error = core::error::Error;
 
-    fn try_into(self) -> Result<UserInfo, Self::Error> {
+    fn try_into(self) -> std::result::Result<UserInfo, Self::Error> {
         Ok(UserInfo {
             username: self.matched_user.username,
             profile: self.matched_user.profile.into(),
@@ -183,7 +185,7 @@ impl TryInto<UserInfo> for Data {
                             .unwrap(),
                     )
                 })
-                .collect::<error::Result<Vec<super::Problem>>>()?,
+                .collect::<Result<Vec<super::Problem>>>()?,
         })
     }
 }
@@ -235,7 +237,7 @@ struct Submission {
 }
 
 impl Submission {
-    fn try_into_problem(&self, problem_data: &ProblemData) -> error::Result<super::Problem> {
+    fn try_into_problem(&self, problem_data: &ProblemData) -> Result<super::Problem> {
         Ok(super::Problem {
             difficulty: super::Difficulty::try_from(self.difficulty.as_str())?,
             count: self.count,

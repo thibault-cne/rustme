@@ -1,4 +1,4 @@
-use core::{font::Font, item::Item, theme::Theme, Extension as ExtensionTrait};
+use core::{error::Result, font::Font, item::Item, theme::Theme, Extension as ExtensionTrait};
 
 use crate::Generator;
 
@@ -16,7 +16,7 @@ impl ExtensionTrait<Generator> for Extension {
         generator: &mut Generator,
         items: &mut Vec<Item>,
         style: &mut Vec<String>,
-    ) -> error::Result<()> {
+    ) -> Result<()> {
         match self {
             Extension::Animation => animation::extend(generator, items, style),
             Extension::Theme(theme) => theme.extend(generator, items, style).await,
@@ -28,7 +28,7 @@ impl ExtensionTrait<Generator> for Extension {
 
 mod animation {
     use crate::Generator;
-    use core::item::Item;
+    use core::{error::Result, item::Item};
 
     const KEYFRAME: &str = "@keyframes fade_in{from{opacity:0}to{opacity:1}}";
 
@@ -65,7 +65,7 @@ mod animation {
         generator: &mut Generator,
         _: &mut Vec<Item>,
         style: &mut Vec<String>,
-    ) -> error::Result<()> {
+    ) -> Result<()> {
         let mut css = KEYFRAME.to_string();
         let speed = 1_f32;
 
@@ -93,14 +93,14 @@ mod animation {
 mod themes {
     use super::Theme;
     use crate::Generator;
-    use core::{item::Item, Extension};
+    use core::{error::Result, item::Item, Extension};
 
     pub async fn extend(
         themes: &[Theme],
         generator: &mut Generator,
         body: &mut Vec<Item>,
         style: &mut Vec<String>,
-    ) -> error::Result<()> {
+    ) -> Result<()> {
         for theme in themes {
             theme.extend(generator, body, style).await?;
         }
@@ -111,14 +111,14 @@ mod themes {
 mod font {
     use super::Font;
     use crate::Generator;
-    use core::item::Item;
+    use core::{error::Result, item::Item};
 
     pub async fn extend(
         font: &Font,
         _: &mut Generator,
         _: &mut Vec<Item>,
         style: &mut Vec<String>,
-    ) -> error::Result<()> {
+    ) -> Result<()> {
         let font = font.fetch().await?;
         style.push(format!(
             r##"@font-face{{font-family:"{}";src:url("{}") format("woff2")}}"##,

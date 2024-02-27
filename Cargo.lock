@@ -178,7 +178,6 @@ dependencies = [
 name = "core"
 version = "0.1.0"
 dependencies = [
- "error",
  "reqwest",
  "serde",
  "serde_json",
@@ -303,14 +302,6 @@ checksum = "a258e46cdc063eb8519c00b9fc845fc47bcfca4130e2f08e88665ceda8474245"
 dependencies = [
  "libc",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "error"
-version = "0.1.0"
-dependencies = [
- "reqwest",
- "serde_json",
 ]
 
 [[package]]
@@ -612,7 +603,6 @@ name = "leetcode"
 version = "0.1.0"
 dependencies = [
  "core",
- "error",
  "reqwest",
  "serde",
  "serde_json",

@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 core.workspace = true
-error.workspace = true
 
 worker = { workspace = true, optional = true }
 serde.workspace = true

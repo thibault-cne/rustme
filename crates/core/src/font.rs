@@ -7,7 +7,7 @@ pub enum Font {
 impl Font {
     const BASE_URL: &'static str = "https://cdn.jsdelivr.net/gh/thibault-cne/rustme@json/";
 
-    pub async fn fetch(&self) -> error::Result<JsonFont> {
+    pub async fn fetch(&self) -> crate::error::Result<JsonFont> {
         let url = format!("{}{}.json", Self::BASE_URL, self.filename());
 
         let resp = reqwest::get(url).await?;

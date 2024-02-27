@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use core::{
+    error::Result,
     font::Font,
     item::{Item, ItemBuilder},
     theme::Theme,
@@ -13,7 +14,6 @@ mod graphql;
 mod item;
 pub mod theme;
 
-#[derive(Default)]
 pub struct Generator {
     config: Config,
     verbose: bool,
@@ -21,11 +21,11 @@ pub struct Generator {
 }
 
 impl GeneratorTrait for Generator {
-    async fn generate(mut self) -> error::Result<String> {
+    async fn generate(mut self) -> Result<String> {
         log! { self.verbose => "starting generation with config: {:?}", self.config };
 
-        let user_id = graphql::Id::new(&self.config.username);
         log! { self.verbose => "awaiting user_info of: {:?}", self.config.username };
+        let user_id = graphql::Id::new(&self.config.username);
         let client = graphql::Client::new(user_id).set_verbose(self.verbose);
         let user_info = client.get().await.unwrap_or_default();
         self.user_info = Some(user_info);
@@ -44,7 +44,7 @@ impl Generator {
         }
     }
 
-    async fn hydrate(mut self) -> error::Result<String> {
+    async fn hydrate(mut self) -> Result<String> {
         log! {self.verbose => "starting hydration..."};
         let mut ext_style = Vec::new();
         let mut ext_body = Vec::new();
@@ -289,15 +289,15 @@ impl Difficulty {
 }
 
 impl TryFrom<&str> for Difficulty {
-    type Error = error::Error;
+    type Error = core::error::Error;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn try_from(value: &str) -> std::result::Result<Self, Self::Error> {
         match value {
             "All" => Ok(Self::All),
             "Easy" => Ok(Self::Easy),
             "Medium" => Ok(Self::Medium),
             "Hard" => Ok(Self::Hard),
-            _ => Err(error::Error::new_invalid_difficulty_kind()),
+            _ => Err(core::error::Error::new_invalid_difficulty_kind()),
         }
     }
 }

@@ -6,7 +6,6 @@ resolver = "2"
 
 [workspace.dependencies]
 # Internal dependencies
-error = { path = "crates/error" }
 core = { path = "crates/core" }
 leetcode = { path = "crates/leetcode" }
 nano-fonts = { path = "crates/nano-fonts" }

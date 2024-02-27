@@ -1,4 +1,4 @@
-use core::Extension;
+use core::{error::Result, Extension};
 
 macro_rules! fonts {
     {$($const:ident),*} => {
@@ -16,7 +16,7 @@ impl Extension<super::Generator> for core::font::Font {
         _: &mut super::Generator,
         _: &mut Vec<core::item::Item>,
         style: &mut Vec<String>,
-    ) -> error::Result<()> {
+    ) -> Result<()> {
         let font = self.fetch().await?;
         style.push(format!(
             r##"@font-face{{font-family:"{}";src:url("{}") format("woff2")}}"##,

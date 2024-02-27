@@ -1,5 +1,5 @@
 pub use core::theme::{DARK, FERRARI, LIGHT};
-use core::{minimize_css, theme::Theme, Extension};
+use core::{error::Result, minimize_css, theme::Theme, Extension};
 
 use crate::Generator;
 
@@ -9,7 +9,7 @@ impl Extension<Generator> for Theme {
         _: &mut Generator,
         _: &mut Vec<core::item::Item>,
         style: &mut Vec<String>,
-    ) -> error::Result<()> {
+    ) -> Result<()> {
         let vars = self.format_vars();
         let (start, end) =
             if self.prefered_color_scheme == "dark" || self.prefered_color_scheme == "light" {
