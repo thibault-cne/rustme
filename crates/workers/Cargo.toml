@@ -12,6 +12,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 leetcode.workspace = true
 core.workspace = true
+codegen.workspace = true
 
 worker.workspace = true
 wee_alloc = { workspace = true, optional = true }

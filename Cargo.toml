@@ -6,6 +6,7 @@ resolver = "2"
 
 [workspace.dependencies]
 # Internal dependencies
+codegen = { path = "crates/codegen" }
 core = { path = "crates/core" }
 leetcode = { path = "crates/leetcode" }
 nano-fonts = { path = "crates/nano-fonts" }
@@ -20,3 +21,8 @@ base64 = "0.21.7"
 serde_json = "1.0.113"
 worker = "0.0.18"
 wee_alloc = "0.4.5"
+
+# Proc macros dependencies
+proc-macro2 = "1.0.78"
+quote = "1.0.35"
+syn = "2.0.51"

@@ -1,3 +1,5 @@
+extern crate codegen;
+
 use worker::*;
 
 mod leetcode;
